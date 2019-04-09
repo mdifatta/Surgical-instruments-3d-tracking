@@ -233,6 +233,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-.png
+# frames
+*.png
 
-.avi
+# videos
+*.avi
