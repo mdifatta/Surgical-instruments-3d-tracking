@@ -235,6 +235,7 @@ dmypy.json
 
 # frames
 *.png
+./data/datasets/*.png
 
 # videos
-*.avi
+./data/videos/*.avi
