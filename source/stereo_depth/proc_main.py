@@ -1,5 +1,5 @@
 import cv2
-from source.stereo_depth.utilities import normalize
+from utilities import normalize
 
 
 def disparity_computation(left_img, right_img):
