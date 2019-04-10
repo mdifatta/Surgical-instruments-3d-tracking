@@ -5,7 +5,7 @@ from source.tool_shadow.utilities import hough_transform
 
 from tqdm import tqdm
 
-DATA_PATH = "./data/" # TODO
+DATA_PATH = "../../data/datasets/frames2d/"
 OUTPUT_PATH = "../../data/outputs/"
 
 if __name__ == "__main__":
