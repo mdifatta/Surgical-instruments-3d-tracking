@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 
 def main():
-    cap = cv2.VideoCapture('./case-1-2D.avi')
+    cap = cv2.VideoCapture('../case-1-2D.avi')
     # TODO: the index must be consecutive across videos
     id = 0
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -19,7 +19,7 @@ def main():
         ret, frame = cap.read()
 
         if ret:
-            cv2.imwrite('./case-1/frame%d.png' % id, frame, [cv2.IMWRITE_PNG_COMPRESSION, 5])
+            cv2.imwrite('../case-1/frame%d.png' % id, frame, [cv2.IMWRITE_PNG_COMPRESSION, 5])
             id = id + 1
         else:
             print('exiting...')

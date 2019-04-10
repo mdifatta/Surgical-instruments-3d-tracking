@@ -56,8 +56,11 @@ def main():
     cap.release()
 
 
-def gpu_main():
-    cap = cv2.VideoCapture("./case-1-3D.avi")
+def colab_main():
+    # ######################################################
+    # ########  function to be run on Google Colab #########
+    # ######################################################
+    cap = cv2.VideoCapture("../case-1-3D.avi")
 
     '''
     while cap.isOpened():
