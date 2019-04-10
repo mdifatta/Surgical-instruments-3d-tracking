@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from utilities import matching_points, downscaling, normalize, disp_wls_smoother, circle_hough
+from source.stereo_depth.utilities import matching_points, downscaling, normalize, disp_wls_smoother, circle_hough
 
 DATA_PATH = "../../data/datasets/"
 OUTPUT_PATH = "../../data/outputs/"
