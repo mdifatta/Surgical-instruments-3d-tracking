@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import cv2
 import numpy as np
 import os
+from matplotlib import pyplot as plt
 
 
 class MainWindow:
@@ -26,13 +27,9 @@ class MainWindow:
         self.canvas.bind("<Button 1>", self.get_coord)
 
         # images
-        self.my_images = []
-        for i in photo_images:
-            self.my_images.append(i)
+        self.my_images = photo_images
 
-        self.my_frames = []
-        for f in raw_frames:
-            self.my_frames.append(f)
+        self.my_frames = raw_frames
         self.current_frame = 0
 
         # frames' file names
@@ -86,9 +83,15 @@ class MainWindow:
             self.points.append((x, y))
 
         if len(self.points) == 2:
-            blank = np.copy(self.my_frames)
-            res = cv2.circle(blank, self.points[0], 4, (0, 0, 255), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, self.points[1], 4, (0, 0, 255), -1)
+            # ########################## showing points for testing ###############################
+            blank = np.copy(self.my_frames[self.current_frame])
+            blank = cv2.resize(blank, dsize=(0, 0), fx=2, fy=2)
+            res = cv2.circle(blank, self.points[0], 9, (0, 255, 0), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(res, self.points[1], 9, (0, 255, 0), -1, lineType=cv2.LINE_AA)
+            plt.figure()
+            plt.imshow(res)
+            plt.show()
+            # #####################################################################################
             print(self.points)
 
 
@@ -184,3 +187,4 @@ if __name__ == '__main__':
 # TODO: implement button CLEAR to clear the current points in case of mistake
 # TODO: fix case in which NEXT is pressed before the points are marked
 # TODO: check wrong overwrite of file
+# TODO: show points on images in real time for trouble shooting
