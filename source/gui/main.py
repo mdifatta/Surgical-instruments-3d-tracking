@@ -86,8 +86,8 @@ class MainWindow:
             # ########################## showing points for testing ###############################
             blank = np.copy(self.my_frames[self.current_frame])
             blank = cv2.resize(blank, dsize=(0, 0), fx=2, fy=2)
-            res = cv2.circle(blank, self.points[0], 9, (0, 255, 0), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, self.points[1], 9, (0, 255, 0), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(blank, self.points[0], 6, (255, 0, 0), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(res, self.points[1], 6, (255, 0, 0), -1, lineType=cv2.LINE_AA)
             plt.figure()
             plt.imshow(res)
             plt.show()
@@ -140,8 +140,8 @@ def simple_gui():
 
         if len(points) == 2:
             blank = np.copy(raw)
-            res = cv2.circle(blank, points[0], 4, (0, 0, 255), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, points[1], 4, (0, 0, 255), -1)
+            res = cv2.circle(blank, points[0], 1, (0, 0, 255), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(res, points[1], 1, (0, 0, 255), -1)
             res = cv2.line(res, points[0], points[1], (0, 255, 0), 1, lineType=cv2.LINE_AA)
             cv2.imshow('test', res)
 
