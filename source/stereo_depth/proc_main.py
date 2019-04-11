@@ -43,12 +43,11 @@ def main():
 
         # compute disparity map
         mid = int(frame.shape[1] / 2)
+
         disparity = disparity_computation(
             frame[:, 0:mid, :],
             frame[:, mid:frame.shape[1], :]
         )
-
-        # compute depth map from disparity map
 
     else:
         print('Error.')
