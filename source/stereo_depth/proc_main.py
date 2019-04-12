@@ -17,7 +17,7 @@ def disparity_computation(left_img, right_img):
     return normalize(disparity)
 
 
-def crop(left, right):
+def crop(left, right, width=1440):
     ret2, thr_left = cv2.threshold(cv2.cvtColor(left, cv2.COLOR_BGR2GRAY),
                                    0,
                                    255,
@@ -36,7 +36,7 @@ def crop(left, right):
     right_edge = mask_left[:, 0, 0].max()
 
     delta = right_edge - left_edge
-    delta2 = 1440 - delta
+    delta2 = width - delta
     left_margin = int(delta2 / 2)
     right_margin = delta2 - left_margin
 
@@ -48,7 +48,7 @@ def crop(left, right):
     right_edge = mask_right[:, 0, 0].max()
 
     delta = right_edge - left_edge
-    delta2 = 1440 - delta
+    delta2 = width - delta
     left_margin = int(delta2 / 2)
     right_margin = delta2 - left_margin
 
@@ -62,13 +62,15 @@ def main():
 
     ret, frame = cap.read()
     if ret:
+        # computer image's half
         mid = int(frame.shape[1] / 2)
 
-        # divide left and right frames
+        # divide left and right frames and crop TrueVision logo
         left_frame = frame[:, 0:1750, :]
         right_frame = frame[:, mid:mid + 1750, :]
 
-        left_cropped, right_cropped = crop(left_frame, right_frame)
+        # crop image to shape [1080, width]
+        left_cropped, right_cropped = crop(left_frame, right_frame, width=1440)
 
         # downscale for faster computation
         new_left = cv2.pyrDown(left_cropped)
@@ -82,7 +84,7 @@ def main():
 
         #plt.figure()
         #plt.imshow(disparity, 'gray')
-        #plt.show()
+        #splt.show()
 
     else:
         print('Error.')
