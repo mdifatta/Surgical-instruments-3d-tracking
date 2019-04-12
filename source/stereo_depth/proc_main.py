@@ -1,11 +1,12 @@
 import cv2
 from utilities import normalize
+import matplotlib.pyplot as plt
 
 
 def disparity_computation(left_img, right_img):
 
-    stereo = cv2.StereoSGBM_create(minDisparity=-15,
-                                   numDisparities=96,
+    stereo = cv2.StereoSGBM_create(minDisparity=-10,
+                                   numDisparities=80,
                                    blockSize=1,
                                    speckleRange=2,
                                    speckleWindowSize=4
@@ -16,38 +17,72 @@ def disparity_computation(left_img, right_img):
     return normalize(disparity)
 
 
+def crop(left, right):
+    ret2, thr_left = cv2.threshold(cv2.cvtColor(left, cv2.COLOR_BGR2GRAY),
+                                   0,
+                                   255,
+                                   cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                                   )
+
+    ret3, thr_right = cv2.threshold(cv2.cvtColor(right, cv2.COLOR_BGR2GRAY),
+                                    0,
+                                    255,
+                                    cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                                    )
+
+    mask_left = cv2.findNonZero(thr_left)
+
+    left_edge = mask_left[:, 0, 0].min()
+    right_edge = mask_left[:, 0, 0].max()
+
+    delta = right_edge - left_edge
+    delta2 = 1440 - delta
+    left_margin = int(delta2 / 2)
+    right_margin = delta2 - left_margin
+
+    left_cropped = left[:, left_edge - left_margin:right_edge + right_margin, :]
+
+    mask_right = cv2.findNonZero(thr_right)
+
+    left_edge = mask_right[:, 0, 0].min()
+    right_edge = mask_right[:, 0, 0].max()
+
+    delta = right_edge - left_edge
+    delta2 = 1440 - delta
+    left_margin = int(delta2 / 2)
+    right_margin = delta2 - left_margin
+
+    right_cropped = right[:, left_edge - left_margin:right_edge + right_margin, :]
+
+    return left_cropped, right_cropped
+
+
 def main():
     cap = cv2.VideoCapture("../../data/videos/case-1-3D.avi")
 
-    '''
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if ret:
-            frame = cv2.pyrDown(frame)
-            mid = int(frame.shape[1] / 2)
-            disparity = disparity_computation(
-                                            frame[:, 0:mid, :],
-                                            frame[:, mid:frame.shape[1], :]
-                                              )
-            # compute depth map from disparity map
-            #writer.write(disparity.astype('uint8'))
-            cv2.imshow('frame', disparity)
-            cv2.waitKey(1)
-        else:
-            break
-    '''
     ret, frame = cap.read()
     if ret:
-        # downscale for faster computation
-        frame = cv2.pyrDown(frame)
-
-        # compute disparity map
         mid = int(frame.shape[1] / 2)
 
+        # divide left and right frames
+        left_frame = frame[:, 0:1750, :]
+        right_frame = frame[:, mid:mid + 1750, :]
+
+        left_cropped, right_cropped = crop(left_frame, right_frame)
+
+        # downscale for faster computation
+        new_left = cv2.pyrDown(left_cropped)
+        new_right = cv2.pyrDown(right_cropped)
+
+        # compute disparity map
         disparity = disparity_computation(
-            frame[:, 0:mid, :],
-            frame[:, mid:frame.shape[1], :]
+            new_left,
+            new_right
         )
+
+        #plt.figure()
+        #plt.imshow(disparity, 'gray')
+        #plt.show()
 
     else:
         print('Error.')
