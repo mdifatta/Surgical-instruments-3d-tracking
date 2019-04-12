@@ -3,6 +3,7 @@ from tkinter import messagebox, simpledialog
 from PIL import Image, ImageTk
 import cv2
 import numpy as np
+from scipy.spatial import distance
 import os
 from matplotlib import pyplot as plt
 
@@ -52,12 +53,13 @@ class MainWindow:
 
         self.output_file = '../../data/targets/' + output_name + '.csv'
         f = open(self.output_file, 'w')
-        f.write('frame;p1;p2\n')
+        f.write('frame;p1;p2;dist\n')
 
     def change_frame(self):
         # save current coordinates
         f = open(self.output_file, 'a')
-        txt = '%s;%s;%s\n' % (self.filenames[self.current_frame], self.points[0], self.points[1])
+        dist = distance.euclidean(self.points[0], self.points[1])
+        txt = '%s;%s;%s;%.2f\n' % (self.filenames[self.current_frame], self.points[0], self.points[1], dist)
         f.write(txt)
         f.close()
 
