@@ -12,8 +12,7 @@ def main():
     folder_name = "video-1"
 
     cap = cv2.VideoCapture('../%s' % video_name)
-    # TODO: the index must be consecutive across videos so first generate frames then
-    # rename frames with consecutive filenames
+
     id = 0
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     length = int(length / 10) * 10
