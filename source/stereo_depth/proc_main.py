@@ -5,14 +5,26 @@ import matplotlib.pyplot as plt
 
 def disparity_computation(left_img, right_img):
 
-    stereo = cv2.StereoSGBM_create(minDisparity=-10,
-                                   numDisparities=80,
-                                   blockSize=1,
-                                   speckleRange=2,
-                                   speckleWindowSize=4
+    minDisp = -10
+    numDisp = 80
+    bSize = 1
+    speckleRange = 2
+    speckleWindowSize = 4
+
+    stereo = cv2.StereoSGBM_create(minDisparity=minDisp,
+                                   numDisparities=numDisp,
+                                   blockSize=bSize,
+                                   speckleRange=speckleRange,
+                                   speckleWindowSize=speckleWindowSize
                                    )
 
     disparity = stereo.compute(left_img, right_img)
+
+    #plt.figure()
+    #plt.title("%d, %d, %d, %d, %d" % (minDisp, numDisp, bSize, speckleRange, speckleWindowSize))
+    #plt.imshow(disparity, 'gray')
+    #plt.colorbar(orientation='horizontal')
+    #plt.show()
 
     return normalize(disparity)
 
@@ -60,7 +72,10 @@ def crop(left, right, width=1440):
 def main():
     cap = cv2.VideoCapture("../../data/videos/case-1-3D.avi")
 
-    ret, frame = cap.read()
+    ret, frame_raw = cap.read()
+
+    frame = cv2.fastNlMeansDenoisingColored(frame_raw, None, 6, 5, 7, 19)
+
     if ret:
         # computer image's half
         mid = int(frame.shape[1] / 2)
@@ -81,10 +96,6 @@ def main():
             new_left,
             new_right
         )
-
-        #plt.figure()
-        #plt.imshow(disparity, 'gray')
-        #splt.show()
 
     else:
         print('Error.')
