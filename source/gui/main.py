@@ -67,28 +67,29 @@ class MainWindow:
         self.output_file = '../../data/targets/' + output_name + '.csv'
 
     def change_frame(self):
-        # save current coordinates
-        f = open(self.output_file, 'a')
-        dist = distance.euclidean(self.points[0], self.points[1])
-        txt = '%s;%d;%s;%s;%.1f\n' % (
-            self.filenames[self.current_frame], 1, self.points[0], self.points[1], dist)
-        f.write(txt)
-        f.close()
+        if len(self.points) == 2:
+            # save current coordinates
+            f = open(self.output_file, 'a')
+            dist = distance.euclidean(self.points[0], self.points[1])
+            txt = '%s;%d;%s;%s;%.1f\n' % (
+                self.filenames[self.current_frame], 1, self.points[0], self.points[1], dist)
+            f.write(txt)
+            f.close()
 
-        # next image
-        self.current_frame += 1
+            # next image
+            self.current_frame += 1
 
-        # return to first image
-        if self.current_frame == len(self.my_images):
-            messagebox.showinfo('This is the End', 'The current sequence of frames is ended.')
-            self.root.destroy()
-            return
+            # return to first image
+            if self.current_frame == len(self.my_images):
+                messagebox.showinfo('This is the End', 'The current sequence of frames is ended.')
+                self.root.destroy()
+                return
 
-        # change image
-        self.canvas.itemconfig(self.image_on_canvas, image=self.my_images[self.current_frame])
-        self.curr_frame_name.configure(text=self.filenames[self.current_frame])
-        self.count.configure(text = '%d/%d' % (self.current_frame, len(self.filenames)))
-        self.points.clear()
+            # change image
+            self.canvas.itemconfig(self.image_on_canvas, image=self.my_images[self.current_frame])
+            self.curr_frame_name.configure(text=self.filenames[self.current_frame])
+            self.count.configure(text = '%d/%d' % (self.current_frame, len(self.filenames)))
+            self.points.clear()
 
     def get_coord(self, event):
         if len(self.points) < 2:
@@ -184,7 +185,7 @@ def simple_gui():
             res = cv2.circle(blank, points[0], 1, (0, 0, 255), -1, lineType=cv2.LINE_AA)
             res = cv2.circle(res, points[1], 1, (0, 0, 255), -1)
             res = cv2.line(res, points[0], points[1], (0, 255, 0), 1, lineType=cv2.LINE_AA)
-            cv2.imshow('test', res)
+            cv2.imshow('prova-1', res)
 
     def change_frame():
         global index
@@ -239,6 +240,4 @@ if __name__ == '__main__':
     else:
         print('You need to choose a folder.')
 
-# TODO: fix case in which NEXT is pressed before the points are marked
-# TODO: check wrong overwrite of file
 # TODO: load each single image when needed
