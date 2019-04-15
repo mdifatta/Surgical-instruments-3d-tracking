@@ -6,6 +6,7 @@ import numpy as np
 from scipy.spatial import distance
 import os
 from matplotlib import pyplot as plt
+import pandas as pd
 
 
 class MainWindow:
@@ -20,7 +21,7 @@ class MainWindow:
         # window's frame
         self.main_frame = Frame(main, height=img_height, width=img_width + 90, bd=15, relief=FLAT)
 
-        # button's space
+        # buttons' space
         self.cmd_frame = Frame(self.main_frame, height=img_height, width=90, bd=3, relief=SUNKEN)
 
         # canvas for image
@@ -39,27 +40,38 @@ class MainWindow:
         # set first image on canvas
         self.image_on_canvas = self.canvas.create_image(0, 0, anchor=NW, image=self.my_images[self.current_frame])
 
+        # name of the current frame
+        self.curr_frame_name = Label(self.cmd_frame, text=self.filenames[self.current_frame])
+
+        # frame count
+        self.count = Label(self.cmd_frame, text='%d/%d' % (self.current_frame, len(self.filenames)))
+
         # button to change image
         self.button = Button(self.cmd_frame, text='Next>>', command=self.change_frame)
 
-        # button to clear
-        self.clear_btn = Button(self.cmd_frame, text='Clear')
+        # button to invalid frame
+        self.invalid_btn = Button(self.cmd_frame, text='Invalid', command=self.invalid_frame)
+
+        # button to clear marked points
+        self.clear_btn = Button(self.cmd_frame, text='Clear', command=self.clear_points)
 
         self.main_frame.pack(fill=BOTH)
         self.canvas.pack(side=LEFT)
         self.cmd_frame.pack(side=RIGHT, fill=BOTH)
         self.button.pack(expand=True)
-        self.clear_btn.pack(side=BOTTOM)
+        self.invalid_btn.pack(side='bottom')
+        self.clear_btn.pack(side='bottom')
+        self.curr_frame_name.pack(expand=True)
+        self.count.pack(expand=True)
 
         self.output_file = '../../data/targets/' + output_name + '.csv'
-        f = open(self.output_file, 'w')
-        f.write('frame;p1;p2;dist\n')
 
     def change_frame(self):
         # save current coordinates
         f = open(self.output_file, 'a')
         dist = distance.euclidean(self.points[0], self.points[1])
-        txt = '%s;%s;%s;%.2f\n' % (self.filenames[self.current_frame], self.points[0], self.points[1], dist)
+        txt = '%s;%d;%s;%s;%.1f\n' % (
+            self.filenames[self.current_frame], 1, self.points[0], self.points[1], dist)
         f.write(txt)
         f.close()
 
@@ -74,6 +86,8 @@ class MainWindow:
 
         # change image
         self.canvas.itemconfig(self.image_on_canvas, image=self.my_images[self.current_frame])
+        self.curr_frame_name.configure(text=self.filenames[self.current_frame])
+        self.count.configure(text = '%d/%d' % (self.current_frame, len(self.filenames)))
         self.points.clear()
 
     def get_coord(self, event):
@@ -95,6 +109,31 @@ class MainWindow:
             plt.show()
             # #####################################################################################
             print(self.points)
+
+    def invalid_frame(self):
+        # save current coordinates
+        f = open(self.output_file, 'a')
+        txt = '%s;%d;%d;%d;%d\n' % (self.filenames[self.current_frame], 0, -1, -1, -1)
+        f.write(txt)
+        f.close()
+
+        # next image
+        self.current_frame += 1
+
+        # return to first image
+        if self.current_frame == len(self.my_images):
+            messagebox.showinfo('This is the End', 'The current sequence of frames is ended.')
+            self.root.destroy()
+            return
+
+        # change image
+        self.canvas.itemconfig(self.image_on_canvas, image=self.my_images[self.current_frame])
+        self.curr_frame_name.configure(text=self.filenames[self.current_frame])
+        self.count.configure(text='%d/%d' % (self.current_frame, len(self.filenames)))
+        self.points.clear()
+
+    def clear_points(self):
+        self.points.clear()
 
 
 points = []
@@ -164,16 +203,30 @@ if __name__ == '__main__':
 
     root = Tk()
 
-    folders_names = os.listdir('../../data/datasets/')
+    folders_names = os.listdir('../../data/datasets/distance_frames_folders/')
 
     answer = simpledialog.askstring("Frames folder",
                                     "Which frames' folder do you want to use?\n"+'\n'.join(folders_names),
                                     parent=root)
 
-    path = '../../data/datasets/' + answer + '/'
+    path = '../../data/datasets/distance_frames_folders/' + answer + '/'
 
     if answer is not None and answer != '':
         file_names = os.listdir(path)
+
+        exists = os.path.isfile('../../data/targets/' + answer + '.csv')
+
+        if exists:
+            df = pd.read_csv('../../data/targets/' + answer + '.csv', sep=';')
+            df_names = df['file']
+            csv_names_set = set(df_names)
+            file_names_set = set(file_names)
+            file_names = list(file_names_set.difference(csv_names_set))
+        else:
+            f = open('../../data/targets/' + answer + '.csv', 'a+')
+            f.write('file;valid;p1;p2;dist\n')
+            f.close()
+
         raw_images = []
         photo_imgs = []
         for fr in file_names:
@@ -186,7 +239,6 @@ if __name__ == '__main__':
     else:
         print('You need to choose a folder.')
 
-# TODO: implement button CLEAR to clear the current points in case of mistake
 # TODO: fix case in which NEXT is pressed before the points are marked
 # TODO: check wrong overwrite of file
-# TODO: show points on images in real time for trouble shooting
+# TODO: load each single image when needed
