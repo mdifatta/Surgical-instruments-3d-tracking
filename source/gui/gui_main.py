@@ -93,8 +93,8 @@ class MainWindow:
 
     def get_coord(self, event):
         if len(self.points) < 2:
-            x = event.x * 2
-            y = event.y * 2
+            x = event.x
+            y = event.y
             # outputting x and y coord to console
             print(x, y)
             self.points.append((x, y))
@@ -102,7 +102,6 @@ class MainWindow:
         if len(self.points) == 2:
             # ########################## showing points for testing ###############################
             blank = np.copy(self.my_frames[self.current_frame])
-            blank = cv2.resize(blank, dsize=(0, 0), fx=2, fy=2)
             res = cv2.circle(blank, self.points[0], 6, (255, 0, 0), -1, lineType=cv2.LINE_AA)
             res = cv2.circle(res, self.points[1], 6, (255, 0, 0), -1, lineType=cv2.LINE_AA)
             plt.figure()
@@ -140,77 +139,18 @@ class MainWindow:
 points = []
 
 
-def simple_gui():
-    frames = os.listdir('./data/')
-
-    window = Tk()
-
-    raw = cv2.cvtColor(cv2.imread(frames[index]), cv2.COLOR_BGR2RGB)
-    img = cv2.resize(raw, (0, 0), fx=.5, fy=.5)
-
-    image_height = img.shape[0]
-    image_width = img.shape[1]
-    cmd_height = image_height
-    cmd_width = 90
-
-    frame = Frame(window, height=image_height, width=image_width + cmd_width, bd=15, relief=FLAT)
-
-    cmd_frame = Frame(frame, height=cmd_height, width=cmd_width, bd=1, relief=FLAT)
-
-    canvas = Canvas(frame, width=image_width, height=image_height, highlightthickness=0, bd=0)
-
-    frame.pack(fill=BOTH)
-    cmd_frame.pack(side=RIGHT)
-    canvas.pack(side=LEFT)
-
-    next_btn = Button(cmd_frame, text='Next>>')
-    next_btn.pack(side='bottom')
-
-    # adding the image
-    image = ImageTk.PhotoImage(image=Image.fromarray(img))
-    canvas.create_image(0, 0, image=image, anchor="nw")
-
-    # function to be called when mouse is clicked
-    def get_coords(event):
-
-        if len(points) < 2:
-            x = event.x * 2
-            y = event.y * 2
-            # outputting x and y coords to console
-            print(x, y)
-            points.append((x, y))
-
-        if len(points) == 2:
-            blank = np.copy(raw)
-            res = cv2.circle(blank, points[0], 1, (0, 0, 255), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, points[1], 1, (0, 0, 255), -1)
-            res = cv2.line(res, points[0], points[1], (0, 255, 0), 1, lineType=cv2.LINE_AA)
-            cv2.imshow('prova-1', res)
-
-    def change_frame():
-        global index
-        index = index + 1
-
-    # mouse click event
-    canvas.bind("<Button 1>", get_coords)
-
-    next_btn.bind('<Button-1>', change_frame)
-
-    window.mainloop()
-
-
 if __name__ == '__main__':
     # simple_gui()
 
     root = Tk()
 
-    folders_names = os.listdir('../../data/datasets/distance_frames_folders/')
+    folders_names = os.listdir('../../data/datasets/2d_frames_folders/')
 
     answer = simpledialog.askstring("Frames folder",
                                     "Which frames' folder do you want to use?\n"+'\n'.join(folders_names),
                                     parent=root)
 
-    path = '../../data/datasets/distance_frames_folders/' + answer + '/'
+    path = '../../data/datasets/2d_frames_folders/' + answer + '/'
 
     if answer is not None and answer != '':
         file_names = os.listdir(path)
@@ -231,7 +171,7 @@ if __name__ == '__main__':
         raw_images = []
         photo_imgs = []
         for fr in file_names:
-            tmp = cv2.resize(cv2.cvtColor(cv2.imread(path + fr), cv2.COLOR_BGR2RGB), (0, 0), fx=.5, fy=.5)
+            tmp = cv2.cvtColor(cv2.imread(path + fr), cv2.COLOR_BGR2RGB)
             raw_images.append(tmp)
             photo_imgs.append(ImageTk.PhotoImage(image=Image.fromarray(tmp)))
 
