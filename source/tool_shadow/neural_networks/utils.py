@@ -23,9 +23,9 @@ def augment_invalid(image):
         iaa.Fliplr(0.4),
         iaa.Flipud(0.4),
         # color
-        iaa.Add((-30, 30), per_channel=0.4),
         iaa.Multiply((0.5, 1.5), per_channel=0.4),
-        iaa.Dropout(p=(0, 0.004), per_channel=True)
+        iaa.Dropout(p=(0.003, 0.01), per_channel=0.3),
+        iaa.CoarseDropout(p=(0.002, 0.007), per_channel=0.4, size_percent=.7)
     ],
         random_order=True
     )
@@ -47,9 +47,9 @@ def augment_valid(image, points):
                       iaa.Fliplr(0.4),
                       iaa.Flipud(0.4),
                       # color
-                      iaa.Add((-30, 30), per_channel=0.6),
                       iaa.Multiply((0.5, 1.2), per_channel=0.3),
-                      iaa.Dropout(p=(0, 0.004), per_channel=True)
+                      iaa.Dropout(p=(0.003, 0.01), per_channel=True),
+                      iaa.CoarseDropout(p=(0.002, 0.007), per_channel=.4, size_percent=.7)
     ],
         random_order=True
     )
@@ -61,7 +61,7 @@ def augment_valid(image, points):
 
 if __name__ == '__main__':
     # ################## PARAMS ######################
-    original_frames = 'patient1-6'
+    original_frames = 'prova'
     id = 7203
     # ###############################################
 
@@ -75,11 +75,11 @@ if __name__ == '__main__':
         if r['valid'] == 1:
             # convert string tuple to instance of Point
             p1 = r['p1'][:len(r['p1'])-1]
-            p1 = p1[1:]
+            p1 = p1.strip()[1:]
             p1 = p1.split(',')
             p1 = Point(p1)
             p2 = r['p2'][:len(r['p2']) - 1]
-            p2 = p2[1:]
+            p2 = p2.strip()[1:]
             p2 = p2.split(',')
             p2 = Point(p2)
             # augment valid frame
