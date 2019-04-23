@@ -11,9 +11,9 @@ from neural_networks.models import mobile_net
 def main():
     # params
     batch_size = 32
-    target_shape = (640, 480)
+    target_shape = (320, 240)
     learning_rate = .002
-    input_shape = (640, 480, 3)
+    input_shape = (320, 240, 3)
 
     # read train csv
     # ######################## local ############################
