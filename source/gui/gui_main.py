@@ -93,8 +93,8 @@ class MainWindow:
 
     def get_coord(self, event):
         if len(self.points) < 2:
-            x = event.x
-            y = event.y
+            x = event.x // 2
+            y = event.y // 2
             # outputting x and y coord to console
             print(x, y)
             self.points.append((x, y))
@@ -102,8 +102,8 @@ class MainWindow:
         if len(self.points) == 2:
             # ########################## showing points for testing ###############################
             blank = np.copy(self.my_frames[self.current_frame])
-            res = cv2.circle(blank, self.points[0], 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, self.points[1], 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(blank, (self.points[0][0] * 2, self.points[0][1] * 2), 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(res, (self.points[1][0] * 2, self.points[1][1] * 2), 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
             plt.figure()
             plt.imshow(res)
             plt.show()
@@ -140,7 +140,6 @@ points = []
 
 
 if __name__ == '__main__':
-    # simple_gui()
 
     root = Tk()
 
@@ -171,7 +170,7 @@ if __name__ == '__main__':
         raw_images = []
         photo_imgs = []
         for fr in file_names:
-            tmp = cv2.cvtColor(cv2.imread(path + fr), cv2.COLOR_BGR2RGB)
+            tmp = cv2.resize(cv2.cvtColor(cv2.imread(path + fr), cv2.COLOR_BGR2RGB), (0, 0), fx=2, fy=2)
             raw_images.append(tmp)
             photo_imgs.append(ImageTk.PhotoImage(image=Image.fromarray(tmp)))
 
