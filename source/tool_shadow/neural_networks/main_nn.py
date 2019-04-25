@@ -15,7 +15,6 @@ def main():
     target_shape = (320, 240)
     learning_rate = .001
     input_shape = (320, 240, 3)
-    train_model = False
     # ###############################################################
 
     # read entire csv
@@ -49,12 +48,6 @@ def main():
 
     print('Validation set: %d samples VALID, %d samples INVALID' %
           (valid[valid.valid == 1]['valid'].count(), valid[valid.valid == 0]['valid'].count()))
-
-    # params
-    batch_size = 32
-    target_shape = (320, 240)
-    learning_rate = .002
-    input_shape = (320, 240, 3)
 
     # read train csv
     # ######################## local ############################
