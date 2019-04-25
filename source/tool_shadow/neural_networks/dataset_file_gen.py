@@ -10,13 +10,13 @@ def main():
     # count rows
     train_len = int((2 / 3) * len(df.index))
 
-    valid_len = int((3 / 4) * train_len)
+    valid_len = int(.2 * train_len)
 
     # split train and test set
     train, test = df[:train_len], df[train_len:]
 
     # split validation set
-    train, valid = train[:valid_len], train[valid_len:]
+    valid, train = train[:valid_len], train[valid_len:]
 
     # create new csv files
     train.to_csv('../../../data/targets/train.csv', sep=';', index=False)
