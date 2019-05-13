@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
+from tqdm import tqdm
 
 
 def main():
@@ -22,13 +23,13 @@ def main():
     loaded_model.load_weights("./model.h5")
     print("Loaded model from disk")
 
-    pred = test[:50]
-    x_pred = np.zeros(shape=[50, 240, 320, 3])
+    pred = test
+    x_pred = np.zeros(shape=[len(pred.index), 240, 320, 3])
     for i, r in pred.iterrows():
         r['file'] = '' + test_path + '/' + r['file']
         x_pred[i] = cv2.imread(r['file'])
 
-    x_pred = x_pred.reshape([50, 320, 240, 3])
+    x_pred = x_pred.reshape([len(pred.index), 320, 240, 3])
 
     y_pred = loaded_model.predict_classes(x_pred)
 
@@ -39,13 +40,12 @@ def main():
 
     y_test = np.array(y_test)
 
-    '''
     for _, r in tqdm(pred.iterrows()):
         plt.figure()
         plt.imshow(cv2.cvtColor(cv2.imread(r['file']).astype(np.uint8), cv2.COLOR_BGR2RGB))
         plt.title('ground_truth=%s, predicted=%s' % (r['valid'], r['predicted']))
         plt.show()
-    '''
+
 
     fpr_keras, tpr_keras, thresholds_keras = roc_curve(y_test, y_pred)
 

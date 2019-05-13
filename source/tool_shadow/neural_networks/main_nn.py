@@ -11,9 +11,9 @@ from models import mobile_net
 
 def main():
     # ######################### PARAMS ##############################
-    batch_size = 32
+    batch_size = 64
     target_shape = (320, 240)
-    learning_rate = .001
+    learning_rate = .0015
     input_shape = (320, 240, 3)
     # ###############################################################
 
@@ -145,7 +145,11 @@ def main():
     model.summary()
 
     # callbacks
-    callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
+    callbacks = [EarlyStopping(monitor='val_loss', patience=15)]
+
+    class_weights = {0: 2.0,
+                     1: 1.0
+                     }
 
     # train the model
     history = model.fit_generator(
@@ -155,7 +159,8 @@ def main():
         validation_steps=STEP_SIZE_VALID,
         epochs=1000,
         callbacks=callbacks,
-        verbose=1
+        verbose=1,
+        class_weight=class_weights
     )
 
     plt.plot(history.history['acc'])
@@ -176,7 +181,7 @@ def main():
 
     test_score = model.evaluate_generator(generator=test_generator,
                                           steps=STEP_SIZE_TEST,
-                                          verbose=0)
+                                          verbose=1)
 
     print('%s: %.2f%%' % (model.metrics_names[1], test_score[1] * 100))
     print('%s: %.2f%%' % (model.metrics_names[0], test_score[0]))
@@ -193,5 +198,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-# TODO: try to use DataGenerator
 
