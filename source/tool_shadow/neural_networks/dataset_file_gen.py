@@ -8,9 +8,9 @@ def main():
     # shuffle rows
     df = shuffle(df)
     # count rows
-    train_len = int((2 / 3) * len(df.index))
+    train_len = int(.9 * len(df.index))
 
-    valid_len = int(.2 * train_len)
+    valid_len = int(.1 * train_len)
 
     # split train and test set
     train, test = df[:train_len], df[train_len:]
@@ -22,6 +22,16 @@ def main():
     train.to_csv('../../../data/targets/train.csv', sep=';', index=False)
     test.to_csv('../../../data/targets/test.csv', sep=';', index=False)
     valid.to_csv('../../../data/targets/valid.csv', sep=';', index=False)
+
+    # dataset's balance
+    print('Training set: %d samples VALID, %d samples INVALID' %
+          (train[train.valid == 1]['valid'].count(), train[train.valid == 0]['valid'].count()))
+
+    print('Test set: %d samples VALID, %d samples INVALID' %
+          (test[test.valid == 1]['valid'].count(), test[test.valid == 0]['valid'].count()))
+
+    print('Validation set: %d samples VALID, %d samples INVALID' %
+          (valid[valid.valid == 1]['valid'].count(), valid[valid.valid == 0]['valid'].count()))
 
 
 if __name__ == '__main__':
