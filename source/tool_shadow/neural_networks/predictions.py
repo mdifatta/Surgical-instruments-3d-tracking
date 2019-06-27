@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
+from sklearn.metrics import confusion_matrix
+from sklearn.utils.multiclass import unique_labels
 from tqdm import tqdm
 
 
@@ -15,12 +17,12 @@ def main():
     test = test.drop(labels=['p1', 'p2', 'dist'], axis=1)
 
     # load json and create model
-    json_file = open('./model.json', 'r')
+    json_file = open('./mobilev2_b32_lr0001ds.json', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
     # load weights into new model
-    loaded_model.load_weights("./model.h5")
+    loaded_model.load_weights("./mobilev2_b32_lr0001ds.h5")
     print("Loaded model from disk")
 
     pred = test
@@ -31,7 +33,8 @@ def main():
 
     x_pred = x_pred.reshape([len(pred.index), 320, 240, 3])
 
-    y_pred = loaded_model.predict_classes(x_pred)
+    #y_pred = loaded_model.predict_classes(x_pred)
+    y_pred = np.argmax(loaded_model.predict(x_pred), axis=1)
 
     pred['predicted'] = y_pred
     y_test = []
@@ -39,13 +42,16 @@ def main():
         y_test.append(int(r['valid']))
 
     y_test = np.array(y_test)
-
+    '''
     for _, r in tqdm(pred.iterrows()):
         plt.figure()
-        plt.imshow(cv2.cvtColor(cv2.imread(r['file']).astype(np.uint8), cv2.COLOR_BGR2RGB))
+        plt.imshow(cv2.cvtColor(cv2.imread(r['file']), cv2.COLOR_BGR2RGB))
         plt.title('ground_truth=%s, predicted=%s' % (r['valid'], r['predicted']))
         plt.show()
+    '''
 
+    plot_confusion_matrix(y_test, y_pred)
+    plt.show()
 
     fpr_keras, tpr_keras, thresholds_keras = roc_curve(y_test, y_pred)
 
@@ -70,6 +76,60 @@ def main():
     plt.title('ROC curve (zoomed in at top left)')
     plt.legend(loc='best')
     plt.show()
+
+
+def plot_confusion_matrix(y_true, y_pred, classes=None,
+                          normalize=False,
+                          title=None,
+                          cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    if not title:
+        if normalize:
+            title = 'Normalized confusion matrix'
+        else:
+            title = 'Confusion matrix, without normalization'
+
+    # Compute confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+    # Only use the labels that appear in the data
+    #classes = classes[unique_labels(y_true, y_pred)]
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    ax.figure.colorbar(im, ax=ax)
+    # We want to show all ticks...
+    ax.set(xticks=np.arange(cm.shape[1]),
+           yticks=np.arange(cm.shape[0]),
+           # ... and label them with the respective list entries
+           xticklabels=['0', '1'], yticklabels=['0', '1'],
+           title=title,
+           ylabel='True label',
+           xlabel='Predicted label')
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+
+    # Loop over data dimensions and create text annotations.
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, format(cm[i, j], fmt),
+                    ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black")
+    fig.tight_layout()
+    return ax
 
 
 if __name__ == '__main__':
