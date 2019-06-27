@@ -178,5 +178,3 @@ if __name__ == '__main__':
         root.mainloop()
     else:
         print('You need to choose a folder.')
-
-# TODO: load each single image when needed
