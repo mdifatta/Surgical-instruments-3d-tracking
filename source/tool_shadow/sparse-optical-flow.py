@@ -19,7 +19,9 @@ class App:
         self.track_len = 10
         self.detect_interval = 60
         self.tracks = []
+        self.fps = 30
         self.cam = cv.VideoCapture(video_src)
+        self.cam.set(cv.CAP_PROP_FPS, self.fps)
         self.frame_idx = 0
 
     def run(self):
@@ -38,27 +40,24 @@ class App:
                 dist = abs(p0-p0r).reshape(-1, 2).max(-1)
                 good = dist < 1
                 new_tracks = []
+                xs, ys = [], []
                 for tr, (x, y), good_flag in zip(self.tracks, p1.reshape(-1, 2), good):
                     if not good_flag:
                         continue
                     tr.append((x, y))
+
+                    xs.append(x)
+                    ys.append(y)
+
                     if len(tr) > self.track_len:
                         del tr[0]
                     new_tracks.append(tr)
                     cv.circle(vis, (x, y), 3, (0, 0, 255), -1)
+                if xs and ys:
+                    cv.circle(vis, (int(np.median(np.array(xs))), int(np.median(np.array(ys)))), 4, (255, 0, 0), -1)
                 self.tracks = new_tracks
-                # centroid
-                xs, ys = [], []
-                for t in self.tracks:
-                    xs.append(t[0][0])
-                    ys.append(t[0][1])
-                xs = np.array(xs)
-                ys = np.array(ys)
-                centroid_x = int(np.median(xs))
-                centroid_y = int(np.median(ys))
-                cv.circle(vis, (centroid_x, centroid_y), 4, (255, 0, 0), -1)
 
-                cv.polylines(vis, [np.int32(tr) for tr in self.tracks], False, (0, 255, 0))
+                cv.polylines(vis, [np.int32(tr) for tr in self.tracks], False, (0, 190, 0))
                 draw_str(vis, (20, 20), 'track count: %d' % len(self.tracks))
 
             if self.frame_idx % self.detect_interval == 0:
@@ -68,7 +67,6 @@ class App:
                     cv.circle(mask, (x, y), 5, 0, -1)
                 p = cv.goodFeaturesToTrack(frame_gray, mask = mask, **feature_params)
                 if p is not None:
-                    #self.tracks = []
                     for x, y in np.float32(p).reshape(-1, 2):
                         self.tracks.append([(x, y)])
 
