@@ -9,7 +9,7 @@ lk_params = dict(winSize =(15, 15),
                  criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
 feature_params = dict(maxCorners=5,
-                      qualityLevel=0.2,
+                      qualityLevel=0.3,
                       minDistance=2,
                       blockSize=10)
 
@@ -57,7 +57,7 @@ class App:
                     cv.circle(vis, (int(np.median(np.array(xs))), int(np.median(np.array(ys)))), 4, (255, 0, 0), -1)
                 self.tracks = new_tracks
 
-                cv.polylines(vis, [np.int32(tr) for tr in self.tracks], False, (0, 190, 0))
+                # cv.polylines(vis, [np.int32(tr) for tr in self.tracks], False, (0, 190, 0))
                 draw_str(vis, (20, 20), 'track count: %d' % len(self.tracks))
 
             if self.frame_idx % self.detect_interval == 0:
