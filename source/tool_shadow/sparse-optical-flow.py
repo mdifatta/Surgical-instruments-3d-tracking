@@ -8,7 +8,7 @@ lk_params = dict(winSize =(15, 15),
                  maxLevel=2,
                  criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
-feature_params = dict(maxCorners=5,
+feature_params = dict(maxCorners=15,
                       qualityLevel=0.3,
                       minDistance=2,
                       blockSize=10)
@@ -73,7 +73,7 @@ class App:
 
             self.frame_idx += 1
             self.prev_gray = frame_gray
-            cv.imshow('lk_track', vis)
+            cv.imshow('Lucas-Kanade track with GFTT', vis)
 
             ch = cv.waitKey(1)
             if ch == 27:
