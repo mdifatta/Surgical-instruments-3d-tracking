@@ -1,8 +1,7 @@
 from __future__ import print_function
 
-import numpy as np
 import cv2 as cv
-
+import numpy as np
 
 lk_params = dict(winSize =(15, 15),
                  maxLevel=2,
@@ -69,7 +68,6 @@ class App:
                 if p is not None:
                     for x, y in np.float32(p).reshape(-1, 2):
                         self.tracks.append([(x, y)])
-
 
             self.frame_idx += 1
             self.prev_gray = frame_gray
