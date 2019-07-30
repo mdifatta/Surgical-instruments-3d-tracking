@@ -17,34 +17,33 @@ class App:
         # tracked points
         self.tracks = []
         # input video's fps
-        self.fps = 60
+        self.fps = 30
         # OpenCV's video reader
         self.cam = cv.VideoCapture(video_src)
         # starting frame index
         self.frame_idx = 0
         # ORB key-points detector
-        self.orb = cv.ORB_create(nfeatures=20)
+        self.orb = cv.ORB_create(nfeatures=15)
         # centroid
         self.centroid = ()
         # set video frame rate
         self.cam.set(cv.CAP_PROP_FPS, self.fps)
 
     def run(self):
-
+        l_edge, r_edge = 0, -1
         while True:
             # read next frame
             _ret, frame = self.cam.read()
-            # crop frame to remove TrueVision logo which interferes which ORB detection
-            # TODO: crop better
-            frame = frame[:1000, 450:1500, :]
-            # convert frame to grayscale
-            # TODO: ORB works also with RGB images, compare performance between RGB and GRAY frames
-            frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            # crop frame to remove TrueVision logo which interferes ORB detection
+            frame = frame[:1030, :, :]
+            if self.frame_idx == 0:
+                l_edge, r_edge = self.crop(frame)
+            frame = frame[:, l_edge:r_edge, :]
             # create a working copy of the current frame
             vis = frame.copy()
 
             if len(self.tracks) > 0:
-                img0, img1 = self.prev_gray, frame_gray
+                img0, img1 = self.prev_frame, frame
                 # reshape self.tracks
                 p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)
                 # compute the optical flow for the current frame
@@ -79,19 +78,18 @@ class App:
                 draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
 
             # every 'self.detect_interval' frames compute ORB points
-            if self.frame_idx % self.detect_interval == 0:
+            if self.frame_idx % self.detect_interval == 0 or len(self.tracks) == 0:
                 # create mask
                 # TODO: try to provide a smarter mask
-                mask = np.zeros_like(frame_gray)
-                mask = self.smart_mask(mask, frame_gray)
-                # mask[:] = 255
+                mask = np.zeros(shape=(frame.shape[0], frame.shape[1]))
+                # mask = self.smart_mask(mask, frame_gray)
+                mask[:, :] = 255
                 for x, y in [np.int32(tr[-1]) for tr in self.tracks]:
                     cv.circle(mask, (x, y), 5, 0, -1)
                 # detect ORB points
-                kp = self.orb.detect(frame_gray, mask=mask)
+                kp = self.orb.detect(frame, mask=mask)
                 # sort points from the best to the worst one
-                # TODO: for the moment useless since we're using all the computed points
-                kp.sort(key=lambda p: p.response, reverse=True)
+
                 if kp is not None:
                     for p in kp:
                         # save detected points
@@ -99,7 +97,7 @@ class App:
 
             # increment frame index
             self.frame_idx += 1
-            self.prev_gray = frame_gray
+            self.prev_frame = frame
             # show detected points
             cv.imshow('Lucas-Kanade track with ORB', vis)
 
@@ -113,10 +111,21 @@ class App:
             roi = cv.selectROI('Choose ROI', frame, fromCenter=False)
             smart_mask[int(roi[1]):int(roi[1]+roi[3]), int(roi[0]):int(roi[0]+roi[2])] = 255
         else:
-            # TODO: to be used only as demo, this approach is not resilient at all !!!
-            smart_mask[self.centroid[0] - 30:self.centroid[0] + 30,
-                       self.centroid[1] - 30:self.centroid[1] + 30] = 255
+            smart_mask[:] = 255
         return smart_mask
+
+    def crop(self, frame):
+        _, thr = cv.threshold(cv.cvtColor(frame, cv.COLOR_BGR2GRAY),
+                              0,
+                              255,
+                              cv.THRESH_BINARY + cv.THRESH_OTSU
+                              )
+        crop_mask = cv.findNonZero(thr)
+
+        left_edge = crop_mask[:, 0, 0].min()
+        right_edge = crop_mask[:, 0, 0].max()
+
+        return left_edge, right_edge
 
 
 def main():
