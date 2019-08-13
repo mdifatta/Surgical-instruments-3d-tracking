@@ -13,17 +13,17 @@ class App:
     def __init__(self, video_src):
         self.track_len = 10
         # re-computation interval
-        self.detect_interval = 60
+        self.detect_interval = 52
         # tracked points
         self.tracks = []
         # input video's fps
-        self.fps = 30
+        self.fps = 26
         # OpenCV's video reader
         self.cam = cv.VideoCapture(video_src)
         # starting frame index
         self.frame_idx = 0
         # ORB key-points detector
-        self.orb = cv.ORB_create(nfeatures=15)
+        self.orb = cv.ORB_create(nfeatures=10)
         # centroid
         self.centroid = ()
         # set video frame rate
@@ -79,7 +79,7 @@ class App:
                 draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
 
             # every 'self.detect_interval' frames compute ORB points
-            if self.frame_idx % self.detect_interval == 0 or len(self.tracks) == 0:
+            if self.frame_idx % self.detect_interval == 0:
                 # create mask
                 # TODO: try to provide a smarter mask
                 # mask = np.zeros(shape=(frame.shape[0], frame.shape[1]))
