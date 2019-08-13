@@ -1,7 +1,7 @@
 from __future__ import print_function
 
-import numpy as np
 import cv2 as cv
+import numpy as np
 
 # Lucas-Kanade algorithm's params
 lk_params = dict(winSize=(15, 15),
@@ -39,11 +39,12 @@ class App:
             if self.frame_idx == 0:
                 l_edge, r_edge = self.crop(frame)
             frame = frame[:, l_edge:r_edge, :]
+            frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
             # create a working copy of the current frame
             vis = frame.copy()
 
             if len(self.tracks) > 0:
-                img0, img1 = self.prev_frame, frame
+                img0, img1 = self.prev_gray, frame_gray
                 # reshape self.tracks
                 p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)
                 # compute the optical flow for the current frame
@@ -81,13 +82,14 @@ class App:
             if self.frame_idx % self.detect_interval == 0 or len(self.tracks) == 0:
                 # create mask
                 # TODO: try to provide a smarter mask
-                mask = np.zeros(shape=(frame.shape[0], frame.shape[1]))
+                # mask = np.zeros(shape=(frame.shape[0], frame.shape[1]))
+                mask = np.zeros_like(frame_gray)
                 # mask = self.smart_mask(mask, frame_gray)
                 mask[:, :] = 255
                 for x, y in [np.int32(tr[-1]) for tr in self.tracks]:
                     cv.circle(mask, (x, y), 5, 0, -1)
                 # detect ORB points
-                kp = self.orb.detect(frame, mask=mask)
+                kp = self.orb.detect(frame_gray, mask=mask)
                 # sort points from the best to the worst one
 
                 if kp is not None:
@@ -97,7 +99,7 @@ class App:
 
             # increment frame index
             self.frame_idx += 1
-            self.prev_frame = frame
+            self.prev_gray = frame_gray
             # show detected points
             cv.imshow('Lucas-Kanade track with ORB', vis)
 
@@ -130,7 +132,7 @@ class App:
 
 def main():
     try:
-        video_src = "../../data/videos/clip-pat-2-video-6.mp4"
+        video_src = "../../data/videos/clip-pat-2-video-2.mp4"
     except:
         video_src = 0
 
