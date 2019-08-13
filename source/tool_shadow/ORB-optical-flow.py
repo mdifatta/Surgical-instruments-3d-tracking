@@ -71,6 +71,8 @@ class App:
                         del tr[0]
                     new_tracks.append(tr)
                     cv.circle(vis, (x, y), 3, (0, 0, 255), -1)
+                # draw flow field
+                # self.draw_flow_field(p0, p1, vis)
                 # draw centroid
                 if xs and ys:
                     self.centroid = (int(np.median(np.array(xs))), int(np.median(np.array(ys))))
@@ -117,6 +119,25 @@ class App:
         else:
             smart_mask[:] = 255
         return smart_mask
+
+    def draw_flow_field(self, fr1_features, fr2_features, frame):
+        for (pX, pY), (qX, qY) in zip(fr1_features.reshape(-1, 2), fr2_features.reshape(-1, 2)):
+            angle = np.arctan2(pY - qY, pX - qX)
+            hypotenuse = np.sqrt(np.square(pY - qY) + np.square(pX - qX))
+
+            qX = int(pX - 4 * hypotenuse * np.cos(angle))
+            qY = int(pY - 4 * hypotenuse * np.sin(angle))
+
+            cv.line(frame, (pX, pY), (qX, qY), (0, 0, 255), 1, cv.LINE_AA, 0)
+
+            pX = int(qX + 9 * np.cos(angle + np.pi / 4))
+            pY = int(qY + 9 * np.sin(angle + np.pi / 4))
+            cv.line(frame, (pX, pY), (qX, qY), (0, 0, 255), 1, cv.LINE_AA, 0)
+            pX = int(qX + 9 * np.cos(angle - np.pi / 4))
+            pY = int(qY + 9 * np.sin(angle - np.pi / 4))
+            cv.line(frame, (pX, pY), (qX, qY), (0, 0, 255), 1, cv.LINE_AA, 0)
+
+            return frame
 
     def crop(self, frame):
         _, thr = cv.threshold(cv.cvtColor(frame, cv.COLOR_BGR2GRAY),
