@@ -28,10 +28,12 @@ class App:
         self.centroid = ()
         # set video frame rate
         self.cam.set(cv.CAP_PROP_FPS, self.fps)
+        # frames count
+        self.frames_count = self.cam.get(cv.CAP_PROP_FRAME_COUNT)
 
     def run(self):
         l_edge, r_edge = 0, -1
-        while True:
+        while self.frame_idx < self.frames_count:
             # read next frame
             _ret, frame = self.cam.read()
             # crop frame to remove TrueVision logo which interferes ORB detection
