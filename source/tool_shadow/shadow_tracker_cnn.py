@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tqdm
+from keras import backend as K
 from keras.activations import relu, tanh
 from keras.callbacks import EarlyStopping
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
-from keras.losses import mean_squared_error
+from keras.losses import mean_absolute_error
 from keras.models import Sequential
 from keras.optimizers import sgd
 from sklearn.model_selection import train_test_split
@@ -39,17 +40,35 @@ def build_model(input_shape):
     return model
 
 
+def root_mean_squared_error(y_true, y_pred):
+    return K.sqrt(K.mean(K.square(y_pred - y_true)))
+
+
+def R2(y_true, y_pred):
+    from keras import backend as K
+    SS_res =  K.sum(K.square( y_true-y_pred ))
+    SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
+    return ( 1 - SS_res/(SS_tot + K.epsilon()) )
+
+
+def process_image(img: np.array, clahe: cv.CLAHE, shape):
+    img = cv.resize(img, shape)
+    img = clahe.apply(img)
+    img = np.expand_dims(img, axis=2)
+
+    return img
+
+
 def load_images(df: pd.DataFrame, basePath, shape):
     print('Loading images ...')
     # images container
     images = []
-    df = shuffle(df)
+    clahe = cv.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
 
     for index, row in tqdm.tqdm(df.iterrows()):
         filename = row['file']
         img = cv.imread(os.path.join(basePath, filename), cv.IMREAD_GRAYSCALE)
-        img = cv.resize(img, shape)
-        img = np.expand_dims(img, axis=2)
+        img = process_image(img, clahe, shape)
 
         images.append(img)
 
@@ -61,7 +80,6 @@ def load_images(df: pd.DataFrame, basePath, shape):
 def load_targets(df: pd.DataFrame):
     print('Loading targets ...')
     targets = []
-    df = shuffle(df)
     df.loc[df['p2'] == '-1', 'p2'] = '(-1, -1)'
     df['p'] = [eval(x) for x in df['p2']]
     for x in df['p']:
@@ -69,6 +87,16 @@ def load_targets(df: pd.DataFrame):
     df = df.drop(labels=['p1', 'p2', 'valid', 'dist'], axis=1)
     print('Targets loaded.')
     return np.asarray(targets, dtype=np.float64)
+
+
+def check_matches(images, targets):
+    for i in range(images.shape[0]):
+        t = np.copy(images[i, :, :, :])
+        print(targets[i, 0])
+        print(targets[i, 1])
+        cv.circle(t, (int(targets[i, 0] * 240), int(targets[i, 1] * 320)), 3, (0, 0, 255), -1, cv.LINE_AA)
+        cv.imshow('test', t)
+        cv.waitKey()
 
 
 def main():
@@ -100,20 +128,25 @@ def main():
         # read targets csv
         df = pd.read_csv('./targets/targets.csv', sep=';')
 
+    # shuffle data
+    df = shuffle(df)
+
     images = load_images(df, base_path, target_shape)
     images = images / 255.0
 
     targets = load_targets(df)
     for i in range(len(targets)):
         if np.all(targets[i] > 0.0):
-            targets[i] = targets[i] / 255
+            targets[i][0] = targets[i][0] / 240
+            targets[i][1] = targets[i][1] / 320
 
     # split train and test as 80/20
     (trainY, testY, trainImages, testImages) = train_test_split(targets,
                                                                 images,
                                                                 test_size=.2,
-                                                                train_size=.8,
-                                                                random_state=948)
+                                                                train_size=.8)
+
+    # check_matches(testImages, testY)
 
     # split train and valid as 80/20 of previous test
     (trainY, validY, trainImages, validImages) = train_test_split(trainY,
@@ -127,8 +160,8 @@ def main():
 
     # compile the model
     model.compile(optimizer=sgd(lr=learning_rate, momentum=momentum),
-                  loss=mean_squared_error,
-                  metrics=['mse']
+                  loss=mean_absolute_error,
+                  metrics=['mean_squared_error']
                   )
 
     model.summary()
@@ -186,7 +219,12 @@ def main():
     for p, im, t in zip(preds, testImages, testY):
         c = (im * 255.0).astype(np.float32)
         c = cv.cvtColor(c, cv.COLOR_GRAY2BGR)
-        cv.circle(c, (p[0], p[1]), 3, (0, 0, 255), -1, cv.LINE_AA)
+        cv.circle(c, (int(p[0] * 240), int(p[1] * 320)), 3, (0, 0, 255), -1, cv.LINE_AA)
+        cv.circle(c, (int(t[0] * 240), int(t[1] * 320)), 3, (0, 255, 0), -1, cv.LINE_AA)
+        cv.putText(c, 'pred:(' + str(p[0] * 240) + ',' + str(p[1] * 320) + ')', (20, 220), cv.FONT_HERSHEY_PLAIN, .6,
+                   color=(0, 0, 255))
+        cv.putText(c, 'real:(' + str(t[0] * 240) + ',' + str(t[1] * 320) + ')', (20, 200), cv.FONT_HERSHEY_PLAIN, .6,
+                   color=(0, 255, 0))
 
         cv.imwrite('./preds/pred%d.png' % i, c)
 
