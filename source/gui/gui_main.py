@@ -1,12 +1,13 @@
+import os
 from tkinter import *
 from tkinter import messagebox, simpledialog
-from PIL import Image, ImageTk
+
 import cv2
 import numpy as np
-from scipy.spatial import distance
-import os
-from matplotlib import pyplot as plt
 import pandas as pd
+from PIL import Image, ImageTk
+from matplotlib import pyplot as plt
+from scipy.spatial import distance
 
 
 class MainWindow:
@@ -141,9 +142,11 @@ points = []
 
 if __name__ == '__main__':
 
-    root = Tk()
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
 
+    root = Tk()
     folders_names = os.listdir('../../data/datasets/2d_frames_folders/')
+
 
     answer = simpledialog.askstring("Frames folder",
                                     "Which frames' folder do you want to use?\n"+'\n'.join(folders_names),
@@ -170,7 +173,9 @@ if __name__ == '__main__':
         raw_images = []
         photo_imgs = []
         for fr in file_names:
-            tmp = cv2.resize(cv2.cvtColor(cv2.imread(path + fr), cv2.COLOR_BGR2RGB), (0, 0), fx=2, fy=2)
+            tmp, _, _ = cv2.split(cv2.cvtColor(cv2.imread(path + fr), cv2.COLOR_BGR2LAB))
+            tmp = clahe.apply(tmp)
+            tmp = cv2.resize(tmp, (0, 0), fx=2, fy=2)
             raw_images.append(tmp)
             photo_imgs.append(ImageTk.PhotoImage(image=Image.fromarray(tmp)))
 
