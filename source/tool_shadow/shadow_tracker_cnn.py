@@ -146,9 +146,7 @@ def main():
                                                                 test_size=.2,
                                                                 train_size=.8)
 
-    # check_matches(testImages, testY)
-
-    # split train and valid as 80/20 of previous test
+    # split train and valid as 90/10 of previous test
     (trainY, validY, trainImages, validImages) = train_test_split(trainY,
                                                                   trainImages,
                                                                   test_size=.1,
@@ -167,7 +165,7 @@ def main():
     model.summary()
 
     # callbacks
-    callbacks = [EarlyStopping(monitor='val_loss', patience=20, mode='min')]
+    callbacks = [EarlyStopping(monitor='val_loss', patience=15, mode='min')]
 
     # train the model
     history = model.fit(
@@ -221,9 +219,11 @@ def main():
         c = cv.cvtColor(c, cv.COLOR_GRAY2BGR)
         cv.circle(c, (int(p[0] * 240), int(p[1] * 320)), 3, (0, 0, 255), -1, cv.LINE_AA)
         cv.circle(c, (int(t[0] * 240), int(t[1] * 320)), 3, (0, 255, 0), -1, cv.LINE_AA)
-        cv.putText(c, 'pred:(' + str(p[0] * 240) + ',' + str(p[1] * 320) + ')', (20, 220), cv.FONT_HERSHEY_PLAIN, .6,
+        cv.putText(c, 'pred:(' + str(p[0] * 240) + ',' + str(p[1] * 320) + ')', (20, 220),
+                   cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
-        cv.putText(c, 'real:(' + str(t[0] * 240) + ',' + str(t[1] * 320) + ')', (20, 200), cv.FONT_HERSHEY_PLAIN, .6,
+        cv.putText(c, 'real:(' + str(t[0] * 240) + ',' + str(t[1] * 320) + ')', (20, 200),
+                   cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 255, 0))
 
         cv.imwrite('./preds/pred%d.png' % i, c)
