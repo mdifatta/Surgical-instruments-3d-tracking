@@ -1,7 +1,7 @@
-from imgaug import augmenters as iaa
-import imgaug as ia
 import cv2
+import imgaug as ia
 import pandas as pd
+from imgaug import augmenters as iaa
 from tqdm import tqdm
 
 
@@ -20,12 +20,19 @@ class Point:
 def augment_invalid(image):
     augmenter = iaa.Sequential([
         # geometry
-        iaa.Fliplr(0.4),
+        iaa.Fliplr(1.0),
         iaa.Flipud(0.4),
+        iaa.Sharpen(alpha=(0, 0.2), lightness=(0.75, 1.5)),
+        iaa.Affine(shear=(-2, 2)),
+        # affine
+        iaa.CropAndPad(percent=(-0.10, 0.10),
+                       pad_mode=["constant"],
+                       pad_cval=(0, 0)
+                       ),
         # color
-        iaa.Multiply((0.5, 1.5), per_channel=0.4),
-        iaa.Dropout(p=(0.003, 0.01), per_channel=0.3),
-        iaa.CoarseDropout(p=(0.002, 0.007), per_channel=0.4, size_percent=.7)
+        iaa.AdditiveGaussianNoise(scale=(0, 0.016 * 255)),
+        iaa.Multiply((0.5, 1.2), per_channel=0.3),
+        iaa.Add((-40, 20), per_channel=0.8)
     ],
         random_order=True
     )
@@ -43,13 +50,20 @@ def augment_valid(image, points):
     ], shape=image.shape)
 
     augmenter = iaa.Sequential([
-                      # geometry
-                      iaa.Fliplr(0.4),
-                      iaa.Flipud(0.4),
-                      # color
-                      iaa.Multiply((0.5, 1.2), per_channel=0.3),
-                      iaa.Dropout(p=(0.003, 0.01), per_channel=True),
-                      iaa.CoarseDropout(p=(0.002, 0.007), per_channel=.4, size_percent=.7)
+        # geometry
+        iaa.Fliplr(1.0),
+        iaa.Flipud(0.4),
+        iaa.Sharpen(alpha=(0, 0.2), lightness=(0.75, 1.5)),
+        iaa.Affine(shear=(-2, 2)),
+        # affine
+        iaa.CropAndPad(percent=(-0.10, 0.10),
+                       pad_mode=["constant"],
+                       pad_cval=(0, 0)
+                       ),
+        # color
+        iaa.AdditiveGaussianNoise(scale=(0, 0.016 * 255)),
+        iaa.Multiply((0.5, 1.2), per_channel=0.3),
+        iaa.Add((-40, 20), per_channel=0.8)
     ],
         random_order=True
     )
@@ -61,8 +75,8 @@ def augment_valid(image, points):
 
 if __name__ == '__main__':
     # ################## PARAMS ######################
-    original_frames = 'prova'
-    id = 7203
+    original_frames = 'patient2-6'
+    initial_id = 11837
     # ###############################################
 
     file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
@@ -90,10 +104,12 @@ if __name__ == '__main__':
 
             # save augmented image with new target
             file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
-            cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png' % (original_frames, id),
+            cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png'
+                        % (original_frames, initial_id),
                         aug_img)
             file.write('frame%d.png;1;(%d, %d); (%d, %d); %.1f\n'
-                       % (id, aug_points.keypoints[0].x, aug_points.keypoints[0].y, aug_points.keypoints[1].x,
+                       % (initial_id, aug_points.keypoints[0].x, aug_points.keypoints[0].y,
+                          aug_points.keypoints[1].x,
                           aug_points.keypoints[1].y, r['dist']))
             file.close()
 
@@ -115,13 +131,14 @@ if __name__ == '__main__':
 
             # save augmented image
             file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
-            cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png' % (original_frames, id),
+            cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png'
+                        % (original_frames, initial_id),
                         aug_img)
-            file.write('frame%d.png;0;-1;-1;-1\n' % id)
+            file.write('frame%d.png;0;-1;-1;-1\n' % initial_id)
             file.close()
             # cv2.imshow('original', img)
             # cv2.waitKey()
             # cv2.imshow('points', aug_img)
             # cv2.waitKey()
 
-        id = id + 1
+        initial_id = initial_id + 1
