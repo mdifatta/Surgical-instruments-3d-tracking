@@ -61,17 +61,17 @@ def tip_averaging(tip):
 
 
 def retina_averaging(retina, tip_avg):
-    # TODO: improve background averaging
-    # clip retina's disparities
-    retina = np.clip(retina, 20, int(tip_avg))
 
     # weights for the background
     weights = np.full_like(retina, fill_value=tip_avg, dtype=np.uint8)
     weights = np.clip(np.subtract(weights, retina), a_min=0, a_max=int(tip_avg))
-    cv.imshow('egef', weights)
-    cv.waitKey()
+    weights[retina < 10] = 0
+    weights[retina > tip_avg] = 0
+    #cv.imshow('ret', retina)
+    #cv.imshow('egef', weights)
+    #cv.waitKey()
     # normalize weights
-    weights = weights / weights.sum()
+    weights = cv.normalize(weights, None, 0, 1, cv.NORM_MINMAX, cv.CV_32F)
     # weighted average and median disparity value for the retina
     avg_retina = np.average(retina, weights=weights)
     median_retina = np.median(retina)
@@ -98,6 +98,8 @@ def compare_disparities(disparity_map, centroid, tip_mask_size=100, retina_mask_
     plt.figure()
     plt.imshow(retina, cmap='gray')
     plt.title('avg:%.2f' % retina_avg_disparity)
+
+    return tip_avg_disparity - retina_avg_disparity
 
 
 class StereoParams:
@@ -190,9 +192,10 @@ def depth(left, right, centroid):
     # values from matching are float, normalize them between 0-255 as integer
     disparity = cv.normalize(disparity, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
 
+    delta_disparity = compare_disparities(disparity, centroid)
+    plt.figure()
     plt.imshow(cv.circle(cv.cvtColor(disparity, cv.COLOR_GRAY2BGR), centroid, 4, (255, 0, 0)))
-
-    compare_disparities(disparity, centroid)
+    plt.title('Disparity diff: %.2f' % delta_disparity)
     plt.show()
 
     # threshold disparity map to find approximate mask for the tool
