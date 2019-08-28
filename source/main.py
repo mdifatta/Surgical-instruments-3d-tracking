@@ -110,12 +110,17 @@ class App:
 
     def run(self):
         l_edge, r_edge = 0, -1
+        mid = 0
         while self.frame_idx < self.frames_count:
             # read next frame
             _ret, frame = self.cam.read()
             # crop frame to remove TrueVision logo which interferes with ORB detection and stereo matching
             frame = frame[:1030, :, :]
             # TODO: divide between left and right frame from a stereo video
+            mid = int(frame.shape[1] / 2)
+            left = frame[:, 0:mid, :]
+            right = frame[:, mid:, :]
+            frame = left
             if self.frame_idx == 0:
                 l_edge, r_edge = self.crop(frame)
             frame = frame[:, l_edge:r_edge, :]
@@ -157,7 +162,12 @@ class App:
                     cv.circle(vis, (self.centroid[0], self.centroid[1]), 4, (255, 0, 0), -1)
                 self.tracks = new_tracks
 
-                self.draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
+                if self.centroid:
+                    distance = self.depth_estimation(left, right, self.centroid)
+                    self.draw_str(vis, (20, 20), 'track count: %d, frame: %d, dist: %.2f' %
+                                  (len(self.tracks), self.frame_idx, distance))
+                else:
+                    self.draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
 
             # every 'self.detect_interval' frames compute ORB points
             if self.frame_idx % self.detect_interval == 0:
@@ -306,15 +316,18 @@ class App:
 
     @staticmethod
     def retina_averaging(retina, tip_avg):
-        # TODO: improve background averaging
         # clip retina's disparities
         retina = np.clip(retina, 20, int(tip_avg))
 
         # weights for the background
         weights = np.full_like(retina, fill_value=tip_avg, dtype=np.uint8)
-        weights = np.clip(np.subtract(weights, retina), a_min=0, a_max=int(tip_avg))
+        weights = np.clip(np.subtract(weights, retina), a_min=10e-4, a_max=int(tip_avg))
+        # get rid of not meaningful areas
+        weights[retina < 10] = 10e-4
+        # get rid of white noise near edges and outliers
+        weights[retina > tip_avg] = 10e-4
         # normalize weights
-        weights = weights / weights.sum()
+        weights = cv.normalize(weights, None, 10e-4, 1, cv.NORM_MINMAX, cv.CV_32F)
         # weighted average and median disparity value for the retina
         avg_retina = np.average(retina, weights=weights)
         return avg_retina
