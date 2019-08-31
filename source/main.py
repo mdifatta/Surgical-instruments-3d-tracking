@@ -107,6 +107,12 @@ class App:
         self.frames_count = self.cam.get(cv.CAP_PROP_FRAME_COUNT)
         # previous gray frame for quality control
         self.prev_gray = None
+        # initialize CLAHE object
+        self.claher = cv.createCLAHE(clipLimit=3.0, tileGridSize=(25, 25))
+        # initialize stereo matcher object
+        self.stereo_matcher = cv.StereoSGBM_create(
+            **StereoParams.params_clahe_bgr_P1_P2_v2
+        )
 
     def run(self):
         left_edge, right_edge = 0, -1
@@ -163,7 +169,7 @@ class App:
                 self.tracks = new_tracks
 
                 if self.centroid:
-                    distance = self.depth_estimation(left, right, self.centroid)
+                    distance = self.depth_estimation(left_frame, right_frame, self.centroid)
                     self.draw_str(vis, (20, 20), 'track count: %d, frame: %d, dist: %.2f' %
                                   (len(self.tracks), self.frame_idx, distance))
                 else:
@@ -245,18 +251,12 @@ class App:
         cv.putText(dst, s, (x + 1, y + 1), cv.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 0), thickness=2, lineType=cv.LINE_AA)
         cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv.LINE_AA)
 
-    @staticmethod
-    def depth_estimation(left, right, centroid):
-
-        # create stereo matcher object
-        stereo = cv.StereoSGBM_create(
-            **StereoParams.params_clahe_bgr_P1_P2_v2
-        )
+    def depth_estimation(self, left, right, centroid):
 
         # match left and right frames
-        disparity = stereo.compute(
-            App.histogram_equalizer(left),
-            App.histogram_equalizer(right)
+        disparity = self.stereo_matcher.compute(
+            self.histogram_equalizer(left),
+            self.histogram_equalizer(right)
         )
 
         # values from matching are float, normalize them between 0-255 as integer
@@ -266,11 +266,9 @@ class App:
 
         return delta_disparity
 
-    @staticmethod
-    def histogram_equalizer(img):
-        clahe = cv.createCLAHE(clipLimit=3.0, tileGridSize=(25, 25))
+    def histogram_equalizer(self, img):
         l, a, b = cv.split(cv.cvtColor(img, cv.COLOR_BGR2LAB))
-        l_channel = clahe.apply(l)
+        l_channel = self.claher.apply(l)
         lab = cv.merge((l_channel, a, b))
         return cv.cvtColor(lab, cv.COLOR_LAB2BGR)
 
