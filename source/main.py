@@ -109,24 +109,26 @@ class App:
         self.prev_gray = None
 
     def run(self):
-        l_edge, r_edge = 0, -1
-        mid = 0
+        left_edge, right_edge = 0, -1
         while self.frame_idx < self.frames_count:
             # read next frame
-            _ret, frame = self.cam.read()
+            _ret, full_frame = self.cam.read()
             # crop frame to remove TrueVision logo which interferes with ORB detection and stereo matching
-            frame = frame[:1030, :, :]
-            # TODO: divide between left and right frame from a stereo video
-            mid = int(frame.shape[1] / 2)
-            left = frame[:, 0:mid, :]
-            right = frame[:, mid:, :]
-            frame = left
+            full_frame = full_frame[:1030, :, :]
+            # divide left and right frame from the stereo frame
+            mid = int(full_frame.shape[1] / 2)
+            left_frame = full_frame[:, 0:mid, :]
+            right_frame = full_frame[:, mid:, :]
+            # get a copy of the left frame as reference for the Optical Flow
+            frame = left_frame
             if self.frame_idx == 0:
-                l_edge, r_edge = self.crop(frame)
-            frame = frame[:, l_edge:r_edge, :]
-            frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+                left_edge, right_edge = self.crop(frame)
+            # crop black bands from frames' edges
+            left_frame = left_frame[:, left_edge:right_edge, :]
+            right_frame = right_frame[:, left_edge:right_edge, :]
+            frame_gray = cv.cvtColor(left_frame, cv.COLOR_BGR2GRAY)
             # create a working copy of the current frame
-            vis = frame.copy()
+            vis = left_frame.copy()
 
             if len(self.tracks) > 0:
                 img0, img1 = self.prev_gray, frame_gray
@@ -154,8 +156,6 @@ class App:
                         del tr[0]
                     new_tracks.append(tr)
                     cv.circle(vis, (x, y), 3, (0, 0, 255), -1)
-                # draw flow field
-                # self.draw_flow_field(p0, p1, vis)
                 # draw centroid
                 if xs and ys:
                     self.centroid = (int(np.median(np.array(xs))), int(np.median(np.array(ys))))
@@ -177,8 +177,6 @@ class App:
                 mask = np.zeros_like(frame_gray)
                 # mask = self.smart_mask(mask, frame_gray)
                 mask[:, :] = 255
-                for x, y in [np.int32(tr[-1]) for tr in self.tracks]:
-                    cv.circle(mask, (x, y), 5, 0, -1)
                 # detect ORB points
                 kp = self.orb.detect(frame_gray, mask=mask)
                 # sort points from the best to the worst one
@@ -322,7 +320,7 @@ class App:
         # weights for the background
         weights = np.full_like(retina, fill_value=tip_avg, dtype=np.uint8)
         weights = np.clip(np.subtract(weights, retina), a_min=10e-4, a_max=int(tip_avg))
-        # get rid of not meaningful areas
+        # get rid of meaningless areas
         weights[retina < 10] = 10e-4
         # get rid of white noise near edges and outliers
         weights[retina > tip_avg] = 10e-4
