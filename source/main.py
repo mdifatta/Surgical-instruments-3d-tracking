@@ -331,8 +331,10 @@ class App:
 
 def main():
     try:
-        # TODO: read 3D video
-        video_src = "../../data/videos/clip-pat-2-video-2.mp4"
+        # 2D video
+        # video_src = "../data/videos/clip-pat-2-video-2.mp4"
+        # 3D video
+        video_src = "../data/videos/case-1-3D.avi"
     except:
         video_src = 0
 
