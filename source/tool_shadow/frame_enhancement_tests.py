@@ -1,10 +1,18 @@
-from skimage import io
 import cv2 as cv
 import numpy as np
+from skimage import io
+
+frames = ['/case-1/frame1.png', '/case-1/frame98.png',
+          '/case-1/frame402.png', '/case-1/frame649.png', '/case-1/frame966.png',
+          '/case-2/frame1253.png', '/case-2/frame1293.png', '/case-2/frame1663.png',
+          '/case-3/frame1876.png', '/case-3/frame1709.png', '/patient1-4/frame1886.png',
+          '/patient1-4/frame3446.png', '/patient1-4/frame2873.png', '/patient1-4/frame2117.png',
+          '/patient1-6/frame3584.png', '/patient1-6/frame3811.png', '/patient2-2/frame3871.png',
+          '/patient2-2/frame4268.png', '/patient2-6/frame4841.png', '/patient2-6/frame4937.png']
 
 
-def ycbcr():
-    img = cv.imread('../../data/datasets/2d_frames_folders/patient2-6/frame4937.png')
+def ycbcr(frame):
+    img = cv.imread('../../data/datasets/2d_frames_folders' + frame)
     res = cv.cvtColor(img, cv.COLOR_BGR2YCR_CB)
 
     Cb = np.zeros(shape=img.shape, dtype=np.uint8)
@@ -16,6 +24,13 @@ def ycbcr():
     CrCb[:, :, 0] = res[:, :, 2]
     CrCb[:, :, 2] = res[:, :, 1]
 
+    mask = np.zeros(shape=(Cr.shape[0], Cr.shape[1]))
+    for i in range(Cr.shape[0]):
+        for j in range(Cr.shape[1]):
+            if Cr[i, j, 2] > 130 and Cr[i, j, 2] <= 150:
+                mask[i, j] = 255
+                # TODO: provare questo approccio su immagine pre-processata con CLAHE
+
     cv.imshow('original', img)
     cv.waitKey()
     cv.imshow('Cb', Cb)
@@ -23,6 +38,59 @@ def ycbcr():
     cv.imshow('Cr', Cr)
     cv.waitKey()
     cv.imshow('CrCb', CrCb)
+    cv.waitKey()
+    cv.imshow('Range', mask)
+    cv.waitKey()
+
+    
+def shadow_enhance(frame):
+    img = cv.imread('../../data/datasets/2d_frames_folders' + frame, 1)
+
+    # -----Converting image to LAB Color model-----------------------------------
+    lab = cv.cvtColor(img, cv.COLOR_BGR2LAB)
+
+    # -----Splitting the LAB image to different channels-------------------------
+    l, a, b = cv.split(lab)
+
+    # -----Applying CLAHE to L-channel-------------------------------------------
+    clahe = cv.createCLAHE(clipLimit=3.0, tileGridSize=(25, 25))
+    cl = clahe.apply(l)
+
+    # -----Merge the CLAHE enhanced L-channel with the a and b channel-----------
+    limg = cv.merge((cl, a, b))
+
+    # -----Converting image from LAB Color model to RGB model--------------------
+    final = cv.cvtColor(limg, cv.COLOR_LAB2BGR)
+
+    cv.imshow('raw', img)
+    cv.imshow('clahe+sharp', edges)
+
+    cv.waitKey()
+
+
+def shadow(frame):
+    img = cv.imread('../../data/datasets/2d_frames_folders' + frame, 1)
+    cv.imshow("img", img)
+
+    clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+
+    # -----Converting image to LAB Color model-----------------------------------
+    lab = cv.cvtColor(img, cv.COLOR_BGR2LAB)
+
+    # -----Splitting the LAB image to different channels-------------------------
+    l, a, b = cv.split(lab)
+
+    cl = clahe.apply(l)
+    cv.imshow('clahe l', cl)
+    res1 = cv.merge((cl, a, b))
+    res1 = cv.cvtColor(res1, cv.COLOR_LAB2BGR)
+    cv.imshow('clahe color', res1)
+
+    mog2 = cv.createBackgroundSubtractorKNN(detectShadows=True)
+    print(cv.BackgroundSubtractorKNN.getShadowThreshold(mog2))
+    res2 = mog2.apply(img)
+    cv.imshow('mog', res2)
+
     cv.waitKey()
 
 
@@ -39,9 +107,9 @@ def glare_removal():
     cv.waitKey()
 
 
-def edges():
+def edges(frame):
 
-    img = io.imread('../../data/datasets/2d_frames_folders/patient2-6/frame4937.png')
+    img = io.imread('../../data/datasets/2d_frames_folders' + frame)
     cv.imshow('original', cv.cvtColor(img, cv.COLOR_RGB2BGR))
     cv.waitKey()
 
@@ -117,7 +185,11 @@ def edges():
     cv.waitKey()
 
 
+
 if __name__ == '__main__':
-    ycbcr()
-    #glare_removal()
-    #edges()
+    for f in frames:
+        ycbcr(f)
+        #glare_removal()
+        #edges(f)
+        #shadow_enhance(f)
+        #shadow(f)
