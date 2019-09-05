@@ -33,17 +33,7 @@ def CLAHE(img):
     return cv.cvtColor(lab, cv.COLOR_LAB2BGR)
 
 
-def orb_detector(im, mask=None):
-    orb = cv.ORB_create(nfeatures=15)
-    kp = orb.detect(im, mask=mask)
-    c = np.copy(im)
-    for p in kp[:]:
-        cv.circle(c, (int(p.pt[0]), int(p.pt[1])), 6,
-                  (255, 0, 0), 2, cv.LINE_AA)
-    return c, kp
-
-
-def gaussian_weights(kernlen, std=1.5):
+def gaussian_weights(kernlen, std=2.5):
     """Returns a 2D Gaussian kernel array."""
     gkern1d = signal.gaussian(kernlen, std=std).reshape(kernlen, 1)
     gkern2d = np.outer(gkern1d, gkern1d)
@@ -55,7 +45,6 @@ def tip_averaging(tip):
     weights = gaussian_weights(kernlen=100)
     # weighted average disparity value for the tip
     avg_tip = np.average(tip, weights=weights)
-    avg_tip_w_penalty = avg_tip * .93  # subtract a 7% error margin
     return avg_tip
 
 
@@ -73,7 +62,6 @@ def retina_averaging(retina, tip_avg):
     weights = cv.normalize(weights, None, 0, 1, cv.NORM_MINMAX, cv.CV_32F)
     # weighted average and median disparity value for the retina
     avg_retina = np.average(retina, weights=weights)
-    median_retina = np.median(retina)
     return avg_retina
 
 
@@ -90,13 +78,6 @@ def compare_disparities(disparity_map, centroid, tip_mask_size=100, retina_mask_
     tip_avg_disparity = tip_averaging(tip)
     # compute average disparity for the background retina
     retina_avg_disparity = retina_averaging(retina, tip_avg_disparity)
-
-    plt.figure()
-    plt.imshow(tip, cmap='gray')
-    plt.title('avg:%.2f' % tip_avg_disparity)
-    plt.figure()
-    plt.imshow(retina, cmap='gray')
-    plt.title('avg:%.2f' % retina_avg_disparity)
 
     return tip_avg_disparity - retina_avg_disparity
 
@@ -189,48 +170,14 @@ def depth(left, right, centroid):
     )
 
     # values from matching are float, normalize them between 0-255 as integer
-    disparity = cv.normalize(disparity, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+    disparity = cv.normalize(cv.resize(disparity, (0, 0), fx=1/.6, fy=1/.6), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+    cv.imshow('Disp', disparity)
 
     delta_disparity = compare_disparities(disparity, centroid)
-    plt.figure()
-    plt.imshow(cv.circle(cv.cvtColor(disparity, cv.COLOR_GRAY2BGR), centroid, 4, (255, 0, 0)))
-    plt.title('Disparity diff: %.2f' % delta_disparity)
-    plt.show()
+    print(delta_disparity)
+    cv.waitKey()
 
-    # threshold disparity map to find approximate mask for the tool
-    #_, th = cv.threshold(disparity, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    th = cv.inRange(disparity, 40, 160)
-
-    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2, 2))
-    open = cv.morphologyEx(th, cv.MORPH_OPEN, kernel, iterations=17)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-    dilation = cv.dilate(open, kernel, iterations=25)
-    #close = cv.morphologyEx(dilation, cv.MORPH_CLOSE, kernel, iterations=6)
-
-    # detect ORB's points using the computed mask
-    res, _ = orb_detector(left, dilation)
-
-    # find and draw contours of the mask
-    contours, hierarchy = cv.findContours(dilation, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    cv.drawContours(res, contours, -1, (0, 255, 0), 3)
-
-    # show everything
-
-    # plt.imshow(cv.cvtColor(left_img, cv.COLOR_BGR2RGB))
-    # plt.title('raw')
-    # plt.figure()
-    # plt.imshow(disparity, cmap='gray')
-    # plt.title('disparity')
-    # plt.figure()
-    # plt.imshow(th, cmap='gray')
-    # plt.title('raw mask')
-    # plt.figure()
-    # plt.imshow(dilation, cmap='gray')
-    # plt.title('mask')
-    # plt.figure()
-    # plt.imshow(res)
-    # plt.title('orb points + contours')
-    plt.show()
+    # (time.time() * 1000) - start
 
 
 if __name__ == '__main__':
