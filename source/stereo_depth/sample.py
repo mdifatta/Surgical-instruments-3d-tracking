@@ -43,23 +43,28 @@ def gaussian_weights(kernlen, std=2.5):
 def tip_averaging(tip):
     # Gaussian weights for the tip
     weights = gaussian_weights(kernlen=100)
+
+    weights[tip <= 20] = 0
     # weighted average disparity value for the tip
     avg_tip = np.average(tip, weights=weights)
     return avg_tip
 
 
 def retina_averaging(retina, tip_avg):
+    # clip retina's disparities
+    retina = np.clip(retina, 1e-7, int(tip_avg))
 
     # weights for the background
     weights = np.full_like(retina, fill_value=tip_avg, dtype=np.uint8)
-    weights = np.clip(np.subtract(weights, retina), a_min=0, a_max=int(tip_avg))
-    weights[retina < 10] = 0
-    weights[retina > tip_avg] = 0
-    #cv.imshow('ret', retina)
-    #cv.imshow('egef', weights)
-    #cv.waitKey()
+    weights = np.clip(np.subtract(weights, retina), a_min=1e-7, a_max=int(tip_avg))
+    # get rid of meaningless areas
+    weights[retina <= 10] = 1e-7
+    # get rid of white noise near edges and outliers
+    weights[retina > tip_avg] = 1e-7
     # normalize weights
-    weights = cv.normalize(weights, None, 0, 1, cv.NORM_MINMAX, cv.CV_32F)
+    weights = cv.normalize(weights, None, 1e-7, 1, cv.NORM_MINMAX, cv.CV_32F)
+
+    cv.imshow('Retina w', weights)
     # weighted average and median disparity value for the retina
     avg_retina = np.average(retina, weights=weights)
     return avg_retina
