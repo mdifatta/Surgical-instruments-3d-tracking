@@ -25,11 +25,15 @@ class App:
         # ORB key-points detector
         self.orb = cv.ORB_create(nfeatures=10)
         # centroid
-        self.centroid = ()
+        self.centroid = None
+        # Centroid movement vector
+        self.centroid_mov_vector = None
         # set video frame rate
         self.cam.set(cv.CAP_PROP_FPS, self.fps)
         # frames count
         self.frames_count = self.cam.get(cv.CAP_PROP_FRAME_COUNT)
+
+        self.reset_mask = True
 
     def run(self):
         l_edge, r_edge = 0, -1
@@ -73,20 +77,35 @@ class App:
                     cv.circle(vis, (x, y), 3, (0, 0, 255), -1)
                 # draw centroid
                 if xs and ys:
-                    self.centroid = (int(np.median(np.array(xs))), int(np.median(np.array(ys))))
+                    # compute new centroid coordinates
+                    new_centroid_x = int(np.median(np.array(xs)))
+                    new_centroid_y = int(np.median(np.array(ys)))
+
+                    if self.centroid is None:
+                        self.centroid_mov_vector = None
+                        # create centroid
+                        self.centroid = (new_centroid_x, new_centroid_y)
+                    else:
+                        self.centroid_mov_vector = (new_centroid_x-self.centroid[0], new_centroid_y-self.centroid[1])
+                        self.reset_mask = False
+                        # update centroid
+                        self.centroid = (new_centroid_x, new_centroid_y)
                     cv.circle(vis, (self.centroid[0], self.centroid[1]), 4, (255, 0, 0), -1)
                 self.tracks = new_tracks
 
                 draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
+            elif len(self.tracks) == 0:
+                self.reset_mask = True
 
             # every 'self.detect_interval' frames compute ORB points
             if self.frame_idx % self.detect_interval == 0:
                 # create mask
                 mask = np.zeros_like(frame_gray)
-                # mask = self.smart_mask(mask, frame_gray)
-                mask[:, :] = 255
-                for x, y in [np.int32(tr[-1]) for tr in self.tracks]:
-                    cv.circle(mask, (x, y), 5, 0, -1)
+                if self.reset_mask:
+                    mask[:, :] = 255
+                else:
+                    mask = self.smart_mask(mask)
+                cv.imshow('mask', mask)
                 # detect ORB points
                 kp = self.orb.detect(frame_gray, mask=mask)
                 # sort points from the best to the worst one
@@ -106,16 +125,21 @@ class App:
             if ch == 27:
                 break
 
-    def smart_mask(self, mask, frame):
-        smart_mask = np.copy(mask)
-        if self.frame_idx == 0:
-            roi = cv.selectROI('Choose ROI', frame, fromCenter=False)
-            smart_mask[int(roi[1]):int(roi[1]+roi[3]), int(roi[0]):int(roi[0]+roi[2])] = 255
-        else:
-            smart_mask[:] = 255
-        return smart_mask
+    @staticmethod
+    def reset_mask(mask):
+        mask[:, :] = 255
+        return mask
 
-    def draw_flow_field(self, fr1_features, fr2_features, frame):
+    def smart_mask(self, mask):
+        mask_size = 100
+        pred_centroid = (self.centroid[0] + self.centroid_mov_vector[0],
+                         self.centroid[1] + self.centroid_mov_vector[1])
+        mask[np.clip(pred_centroid[1] - mask_size//2, a_min=0, a_max=mask.shape[1]):np.clip(pred_centroid[1] + mask_size//2, a_min=0, a_max=mask.shape[1]),
+             np.clip(pred_centroid[0] - mask_size//2, a_min=0, a_max=mask.shape[0]):np.clip(pred_centroid[0] + mask_size//2, a_min=0, a_max=mask.shape[0])] = 255
+        return mask
+
+    @staticmethod
+    def draw_flow_field(fr1_features, fr2_features, frame):
         for (pX, pY), (qX, qY) in zip(fr1_features.reshape(-1, 2), fr2_features.reshape(-1, 2)):
             angle = np.arctan2(pY - qY, pX - qX)
             hypotenuse = np.sqrt(np.square(pY - qY) + np.square(pX - qX))
