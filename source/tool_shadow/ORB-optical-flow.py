@@ -5,7 +5,7 @@ import numpy as np
 
 # Lucas-Kanade algorithm's params
 lk_params = dict(winSize=(15, 15),
-                 maxLevel=2,
+                 maxLevel=7,
                  criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
 
@@ -71,22 +71,17 @@ class App:
                         del tr[0]
                     new_tracks.append(tr)
                     cv.circle(vis, (x, y), 3, (0, 0, 255), -1)
-                # draw flow field
-                # self.draw_flow_field(p0, p1, vis)
                 # draw centroid
                 if xs and ys:
                     self.centroid = (int(np.median(np.array(xs))), int(np.median(np.array(ys))))
                     cv.circle(vis, (self.centroid[0], self.centroid[1]), 4, (255, 0, 0), -1)
                 self.tracks = new_tracks
 
-                # cv.polylines(vis, [np.int32(tr) for tr in self.tracks], False, (0, 190, 0))
                 draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
 
             # every 'self.detect_interval' frames compute ORB points
             if self.frame_idx % self.detect_interval == 0:
                 # create mask
-                # TODO: try to provide a smarter mask
-                # mask = np.zeros(shape=(frame.shape[0], frame.shape[1]))
                 mask = np.zeros_like(frame_gray)
                 # mask = self.smart_mask(mask, frame_gray)
                 mask[:, :] = 255
@@ -139,7 +134,8 @@ class App:
 
             return frame
 
-    def crop(self, frame):
+    @staticmethod
+    def crop(frame):
         _, thr = cv.threshold(cv.cvtColor(frame, cv.COLOR_BGR2GRAY),
                               0,
                               255,
@@ -155,7 +151,16 @@ class App:
 
 def main():
     try:
-        video_src = "../../data/videos/clip-pat-2-video-2.mp4"
+        video_src = "../../data/videos/clip-pat-2-video-6.mp4"
+        '''
+        Note:
+        for clip-case-2 - NOT SO GOOD - Very, very, very difficult video
+        for clip-case-3 - GOOD
+        for clip-pat-1-video-4 - GOOD
+        for clip-pat-1-video-6 - GOOD - Tool's body interference
+        for clip-pat-2-video-2 - VERY GOOD
+        for clip-pat-2-video-6 - NOT SO GOOD - Glare interference
+        '''
     except:
         video_src = 0
 
