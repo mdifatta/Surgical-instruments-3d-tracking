@@ -160,18 +160,34 @@ class StereoParams:
                                   P2=2000
                                   )
 
+    fast_stereo_match_params = dict(
+        # resize > CLAHE > gray
+        mode=cv.STEREO_SGBM_MODE_SGBM_3WAY,
+        minDisparity=-7,
+        numDisparities=96,
+        blockSize=5,
+        speckleRange=5,
+        speckleWindowSize=180,
+        disp12MaxDiff=5,
+        P1=200,
+        P2=1200,
+        uniquenessRatio=6
+    )
+
 
 def depth(left, right, centroid):
+    # start = time.time() * 1000
+    claher = cv.createCLAHE(clipLimit=3.0, tileGridSize=(5, 5))
 
     # create stereo matcher object
     stereo = cv.StereoSGBM_create(
-        **StereoParams.params_clahe_bgr_P1_P2_v2
+        **StereoParams.fast_stereo_match_params
         )
 
     # match left and right frames
     disparity = stereo.compute(
-        CLAHE(left),
-        CLAHE(right)
+        cv.resize(claher.apply(cv.cvtColor(left, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6),
+        cv.resize(claher.apply(cv.cvtColor(right, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6)
     )
 
     # values from matching are float, normalize them between 0-255 as integer
