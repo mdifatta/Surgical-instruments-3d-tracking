@@ -1,6 +1,5 @@
 import cv2 as cv
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy import signal
 
 
@@ -27,7 +26,7 @@ def sharpening(img):
 
 
 def CLAHE(img):
-    clahe = cv.createCLAHE(clipLimit=3.0, tileGridSize=(25, 25))
+    clahe = cv.createCLAHE(clipLimit=3.0, tileGridSize=(5, 5))
     l, a, b = cv.split(cv.cvtColor(img, cv.COLOR_BGR2LAB))
     l = clahe.apply(l)
     lab = cv.merge((l, a, b))
