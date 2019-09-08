@@ -1,12 +1,12 @@
+import os
 from tkinter import *
 from tkinter import messagebox, simpledialog
-from PIL import Image, ImageTk
+
 import cv2
 import numpy as np
-from scipy.spatial import distance
-import os
-from matplotlib import pyplot as plt
 import pandas as pd
+from PIL import Image, ImageTk
+from matplotlib import pyplot as plt
 
 
 class MainWindow:
@@ -17,7 +17,6 @@ class MainWindow:
 
         # lists of points
         self.points = []
-        self.shadow = []
 
         # window's frame
         self.main_frame = Frame(main, height=img_height, width=img_width + 90, bd=15, relief=FLAT)
@@ -28,7 +27,6 @@ class MainWindow:
         # canvas for image
         self.canvas = Canvas(self.main_frame, width=img_width, height=img_height, highlightthickness=0, bd=0)
         self.canvas.bind("<Button-1>", self.get_coord)  # left button click
-        self.canvas.bind("<Button-2>", self.get_coord)  # right button click
 
         # images
         self.my_images = photo_images
@@ -49,10 +47,10 @@ class MainWindow:
         self.count = Label(self.cmd_frame, text='%d/%d' % (self.current_frame, len(self.filenames)))
 
         # button to change image
-        self.button = Button(self.cmd_frame, text='Next>>', command=self.change_frame)
+        self.button = Button(self.cmd_frame, text='Next >>', command=self.change_frame)
 
         # button to invalid frame
-        self.invalid_btn = Button(self.cmd_frame, text='Invalid', command=self.invalid_frame)
+        self.invalid_btn = Button(self.cmd_frame, text='Invalid X', command=self.invalid_frame)
 
         # button to clear marked points
         self.clear_btn = Button(self.cmd_frame, text='Clear', command=self.clear_points)
@@ -69,13 +67,11 @@ class MainWindow:
         self.output_file = '../../data/targets/' + output_name + '-v2.csv'
 
     def change_frame(self):
-        if len(self.points) == 2 and len(self.shadow) == 2:
+        if len(self.points) == 1:
             # save current coordinates
             f = open(self.output_file, 'a')
-            dist = distance.euclidean(self.points[0][0:2], self.shadow[0][0:2])
-            txt = '%s;%d;%s;%s;%s;%s;%.1f\n' % (
-                self.filenames[self.current_frame], 1, self.points[0], self.points[1],
-                self.shadow[0], self.shadow[1], dist)
+            txt = '%s;%s\n' % (
+                self.filenames[self.current_frame], self.points[0])
             f.write(txt)
             f.close()
 
@@ -93,57 +89,31 @@ class MainWindow:
             self.curr_frame_name.configure(text=self.filenames[self.current_frame])
             self.count.configure(text = '%d/%d' % (self.current_frame, len(self.filenames)))
             self.points.clear()
-            self.shadow.clear()
 
     def get_coord(self, event):
-        if len(self.points) < 2 or len(self.shadow) < 2:
+        if len(self.points) < 1:
             x = event.x // 2
             y = event.y // 2
             # outputting x and y coord to console
             print(x, y, event.num)
             if event.num == 1:
                 self.points.append((x, y))
-            if event.num == 2:
-                self.shadow.append((x, y))
 
-        if len(self.points) == 2 and len(self.shadow) == 2:
+        if len(self.points) == 1:
             # ########################## showing points for testing ###############################
             blank = np.copy(self.my_frames[self.current_frame])
             res = cv2.circle(blank, (self.points[0][0] * 2, self.points[0][1] * 2), 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, (self.points[1][0] * 2, self.points[1][1] * 2), 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
-            res = cv2.line(res, (self.points[0][0] * 2, self.points[0][1] * 2), (self.points[1][0] * 2, self.points[1][1] * 2),
-                           (255, 0, 0), thickness=1)
-            res = cv2.circle(res, (self.shadow[0][0] * 2, self.shadow[0][1] * 2), 3, (0, 255, 0), -1,
-                             lineType=cv2.LINE_AA)
-            res = cv2.circle(res, (self.shadow[1][0] * 2, self.shadow[1][1] * 2), 3, (0, 255, 0), -1,
-                             lineType=cv2.LINE_AA)
-            res = cv2.line(res, (self.shadow[0][0] * 2, self.shadow[0][1] * 2),
-                           (self.shadow[1][0] * 2, self.shadow[1][1] * 2),
-                           (0, 255, 0), thickness=1)
+
             plt.figure()
             plt.imshow(res)
             plt.show()
             # #####################################################################################
             print(self.points)
-    '''
-        if len(self.shadow) == 2:
-            # ########################## showing points for testing ###############################
-            blank = np.copy(self.my_frames[self.current_frame])
-            res = cv2.circle(blank, (self.shadow[0][0] * 2, self.shadow[0][1] * 2), 3, (0, 255, 0), -1, lineType=cv2.LINE_AA)
-            res = cv2.circle(res, (self.shadow[1][0] * 2, self.shadow[1][1] * 2), 3, (0, 255, 0), -1, lineType=cv2.LINE_AA)
-            res = cv2.line(res, (self.shadow[0][0] * 2, self.shadow[0][1] * 2),
-                           (self.shadow[1][0] * 2, self.shadow[1][1] * 2),
-                           (0, 255, 0), thickness=2)
-            plt.figure()
-            plt.imshow(res)
-            plt.show()
-            # #####################################################################################
-            print(self.shadow)
-    '''
+
     def invalid_frame(self):
         # save current coordinates
         f = open(self.output_file, 'a')
-        txt = '%s;%d;%d;%d;%d\n' % (self.filenames[self.current_frame], 0, -1, -1, -1)
+        txt = '%s;%s\n' % (self.filenames[self.current_frame], '(-1, -1)')
         f.write(txt)
         f.close()
 
@@ -161,11 +131,9 @@ class MainWindow:
         self.curr_frame_name.configure(text=self.filenames[self.current_frame])
         self.count.configure(text='%d/%d' % (self.current_frame, len(self.filenames)))
         self.points.clear()
-        self.shadow.clear()
 
     def clear_points(self):
         self.points.clear()
-        self.shadow.clear()
 
 
 points = []
@@ -197,7 +165,7 @@ if __name__ == '__main__':
             file_names = list(file_names_set.difference(csv_names_set))
         else:
             f = open('../../data/targets/' + answer + '-v2.csv', 'a+')
-            f.write('file;valid;t1;t2;s1;s2;dist\n')
+            f.write('file;p\n')
             f.close()
 
         raw_images = []
