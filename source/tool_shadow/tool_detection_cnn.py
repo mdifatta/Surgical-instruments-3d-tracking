@@ -11,9 +11,8 @@ import pandas as pd
 import tqdm
 from keras import backend as K
 from keras.activations import relu, sigmoid
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
-from keras.losses import mean_absolute_error
 from keras.models import Sequential
 from keras.optimizers import sgd
 from keras.utils import Sequence
@@ -221,13 +220,15 @@ def main():
         batch_size=batch_size,
         base_path=base_path
     )
-    num_valid_samples = len(test_df.index)
+    num_valid_samples = len(valid_df.index)
 
     print('Dataset summary:')
     print(df.count())
     print('Train samples:%d' % num_train_samples)
     print('Valid samples:%d' % num_valid_samples)
     print('Test samples:%d' % num_test_samples)
+
+    timestamp = datetime.datetime.now().strftime("%m-%d-%H:%M")
 
     # build model
     model = build_model(input_shape)
@@ -297,20 +298,21 @@ def main():
     preds = model.predict_generator(
         generator=test_generator
     )
-    print('Predictions took: %.3f' % (time.time() - start))
+    end = time.time()
+    print('Predictions a total of %.3f and an average of %.3f for each frame.' % (end - start, (end-start)/num_test_samples))
 
     i = 0
+    # load filenames and ground truth
     testX = test_df['file'].tolist()
     testY = load_targets(test_df)
-    for i in range(len(testY)):
-        if np.all(testY[i] > 0.0):
-            testY[i][0] = testY[i][0] / 240
-            testY[i][1] = testY[i][1] / 320
+
     for p, filename, t in zip(preds, testX, testY):
         im = cv.imread(base_path + filename)
         im = im.astype(np.float32)
+        # draw prediction
         cv.circle(im, (int(p[0] * 240), int(p[1] * 320)), 3, (0, 0, 255), -1, cv.LINE_AA)
-        cv.circle(im, (int(t[0] * 240), int(t[1] * 320)), 3, (0, 255, 0), -1, cv.LINE_AA)
+        # draw ground truth
+        cv.circle(im, (int(t[0]), int(t[1])), 3, (0, 255, 0), -1, cv.LINE_AA)
         cv.putText(im, 'pred:(' + str(p[0] * 240) + ',' + str(p[1] * 320) + ')', (20, 220),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
