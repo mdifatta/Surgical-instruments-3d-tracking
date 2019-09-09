@@ -82,7 +82,7 @@ class StereoParams:
 class App:
     # Lucas-Kanade algorithm's params
     lk_params = dict(winSize=(15, 15),
-                     maxLevel=2,
+                     maxLevel=7,
                      criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
     def __init__(self, video_src):
