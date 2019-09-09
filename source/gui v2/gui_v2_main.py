@@ -102,7 +102,7 @@ class MainWindow:
         if len(self.points) == 1:
             # ########################## showing points for testing ###############################
             blank = np.copy(self.my_frames[self.current_frame])
-            res = cv2.circle(blank, (self.points[0][0] * 2, self.points[0][1] * 2), 3, (255, 0, 0), -1, lineType=cv2.LINE_AA)
+            res = cv2.circle(blank, (self.points[0][0] * 2, self.points[0][1] * 2), 2, (255, 0, 0), -1, lineType=cv2.LINE_AA)
 
             plt.figure()
             plt.imshow(res)
