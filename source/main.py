@@ -99,6 +99,11 @@ class App:
                      maxLevel=7,
                      criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
+    SAFETY_THRESHOLD = 13
+    DISPARITY_MAP_ERROR_CODE = -1
+    UNSAFE_ERROR_CODE = 0
+    OK_CODE = 1
+
     def __init__(self, video_src):
         self.track_len = 10
         # re-computation interval
@@ -190,9 +195,16 @@ class App:
                 self.tracks = new_tracks
 
                 if self.centroid:
-                    distance = self.depth_estimation(left_frame, right_frame, self.centroid)
-                    self.draw_str(vis, (20, 20), 'track count: %d, frame: %d, dist: %.2f' %
-                                  (len(self.tracks), self.frame_idx, distance))
+                    outcome, distance = self.depth_estimation(left_frame, right_frame, self.centroid)
+                    if outcome == App.OK_CODE:
+                        self.draw_str(vis, (20, 20), 'track count: %d, frame: %d, dist: %.2f' %
+                                      (len(self.tracks), self.frame_idx, distance))
+                    elif outcome == App.DISPARITY_MAP_ERROR_CODE:
+                        self.draw_str(vis, (20, 20), 'track count: %d, frame: %d, DISP MAP QUALITY INSUFFICIENT' %
+                                      (len(self.tracks), self.frame_idx))
+                    else:
+                        self.draw_str(vis, (20, 20), 'track count: %d, frame: %d, DISTANCE WARNING' %
+                                      (len(self.tracks), self.frame_idx))
                 else:
                     self.draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
 
@@ -286,9 +298,9 @@ class App:
         # values from matching are float, normalize them between 0-255 as integer
         disparity = cv.normalize(cv.resize(disparity, (0, 0), fx=1/.6, fy=1/.6), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
 
-        delta_disparity = App.compare_disparities(disparity, centroid)
+        code, delta_disparity = App.compare_disparities(disparity, centroid)
 
-        return delta_disparity
+        return code, delta_disparity
 
     def histogram_equalizer(self, img):
         l, a, b = cv.split(cv.cvtColor(img, cv.COLOR_BGR2LAB))
@@ -306,17 +318,25 @@ class App:
         retina = disparity_map[centroid[1] - (retina_mask_size // 2):centroid[1] + (retina_mask_size // 2),
                                centroid[0] - (retina_mask_size // 2):centroid[0] + (retina_mask_size // 2)]
 
-        # compute average disparity for the tool's tip
-        tip_avg_disparity = App.tip_averaging(tip)
-        # compute average disparity for the background retina
-        retina_avg_disparity = App.retina_averaging(retina, tip_avg_disparity)
+        if retina.shape != (320, 320):
+            return App.DISPARITY_MAP_ERROR_CODE, None
+        else:
+            # compute average disparity for the tool's tip
+            tip_avg_disparity = App.tip_averaging(tip)
+            # compute average disparity for the background retina
+            retina_avg_disparity = App.retina_averaging(retina, tip_avg_disparity)
 
-        # estimated delta disparity between the tool's tip and the retina in background
-        # CAVEAT: delta_disparity should always be > 0;
-        # if it's =0 we're operating dangerously, we should avoid to get to 0
-        # if it's <0 we have some serious problems
-        delta_disparity = tip_avg_disparity - retina_avg_disparity
-        return delta_disparity
+            # estimated delta disparity between the tool's tip and the retina in background
+            # CAVEAT: delta_disparity should always be > 0;
+            # if it's =0 we're operating dangerously, we should avoid to get to 0
+            # if it's <0 we have some serious problems
+            delta_disparity = tip_avg_disparity - retina_avg_disparity
+            if delta_disparity < 0:
+                return App.DISPARITY_MAP_ERROR_CODE, delta_disparity
+            elif delta_disparity <= App.SAFETY_THRESHOLD:
+                return App.UNSAFE_ERROR_CODE, delta_disparity
+            else:
+                return App.OK_CODE, delta_disparity
 
     @staticmethod
     def gaussian_weights(kernel_len, std=2.5):
