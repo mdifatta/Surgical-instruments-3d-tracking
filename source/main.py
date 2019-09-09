@@ -116,9 +116,16 @@ class App:
 
     def run(self):
         left_edge, right_edge = 0, -1
-        while self.frame_idx < self.frames_count:
+
+        if not self.cam.isOpened():
+            print('Error reading video')
+            return
+        while self.cam.isOpened():
             # read next frame
             _ret, full_frame = self.cam.read()
+            if not _ret:
+                self.frame_idx += 1
+                continue
             # crop frame to remove TrueVision logo which interferes with ORB detection and stereo matching
             full_frame = full_frame[:1030, :, :]
             # divide left and right frame from the stereo frame
@@ -201,6 +208,9 @@ class App:
             ch = cv.waitKey(1)
             if ch == 27:
                 break
+
+        self.cam.release()
+        cv.destroyAllWindows()
 
     def smart_mask(self, mask, frame):
         smart_mask = np.copy(mask)
@@ -333,6 +343,13 @@ def main():
     try:
         # 2D video
         # video_src = "../data/videos/clip-pat-2-video-2.mp4"
+        # Note:
+        # for clip-case-2 - TRACKING NOT SO GOOD (Very, very, very difficult video)
+        # for clip-case-3 - TRACKING GOOD
+        # for clip-pat-1-video-4 - TRACKING GOOD
+        # for clip-pat-1-video-6 - TRACKING GOOD (Tool's body interference)
+        # for clip-pat-2-video-2 - TRACKING VERY GOOD
+        # for clip-pat-2-video-6 - TRACKING NOT SO GOOD (Glare interference)
         # 3D video
         video_src = "../data/videos/case-1-3D.avi"
     except:
