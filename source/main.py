@@ -268,7 +268,7 @@ class App:
             return frame
 
     @staticmethod
-    def crop(frame):
+    def crop(frame, width=1030):
         _, thr = cv.threshold(cv.cvtColor(frame, cv.COLOR_BGR2GRAY),
                               0,
                               255,
@@ -279,7 +279,29 @@ class App:
         left_edge = crop_mask[:, 0, 0].min()
         right_edge = crop_mask[:, 0, 0].max()
 
-        return left_edge, right_edge
+        roi = right_edge - left_edge
+        delta2target = width - roi
+        padding = delta2target // 2
+
+        of_left = (left_edge - padding < 0)
+        of_right = (right_edge + padding > frame.shape[1])
+
+        if of_left and of_right:
+            return 'ERROR'
+
+        if of_left and not of_right:
+            left_margin = 0
+            remainder = (padding - left_edge)
+            right_margin = right_edge + padding + remainder
+        elif of_right and not of_left:
+            right_margin = frame.shape[1]
+            remainder = (right_edge + padding - frame.shape[1])
+            left_margin = left_edge - padding - remainder
+        else:
+            right_margin = right_edge + padding
+            left_margin = left_edge - padding
+
+        return left_margin, right_margin
 
     @staticmethod
     def draw_str(dst, target, s):
