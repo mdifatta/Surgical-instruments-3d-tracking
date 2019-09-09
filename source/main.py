@@ -7,6 +7,20 @@ from scipy import signal
 
 class StereoParams:
     # ################## sets of params for good disparities ##################
+    fast_stereo_match_params = dict(
+        # resize > CLAHE > gray
+        mode=cv.STEREO_SGBM_MODE_SGBM_3WAY,
+        minDisparity=-7,
+        numDisparities=96,
+        blockSize=5,
+        speckleRange=5,
+        speckleWindowSize=180,
+        disp12MaxDiff=5,
+        P1=200,
+        P2=1200,
+        uniquenessRatio=6
+    )
+
     params_no_sharp_bgr = dict(minDisparity=-6,
                                numDisparities=64,
                                blockSize=9,
@@ -108,10 +122,10 @@ class App:
         # previous gray frame for quality control
         self.prev_gray = None
         # initialize CLAHE object
-        self.claher = cv.createCLAHE(clipLimit=3.0, tileGridSize=(25, 25))
+        self.claher = cv.createCLAHE(clipLimit=3.0, tileGridSize=(10, 10))
         # initialize stereo matcher object
         self.stereo_matcher = cv.StereoSGBM_create(
-            **StereoParams.params_clahe_bgr_P1_P2_v2
+            **StereoParams.fast_stereo_match_params
         )
 
     def run(self):
@@ -265,12 +279,12 @@ class App:
 
         # match left and right frames
         disparity = self.stereo_matcher.compute(
-            self.histogram_equalizer(left),
-            self.histogram_equalizer(right)
+            cv.resize(self.claher.apply(cv.cvtColor(left, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6),
+            cv.resize(self.claher.apply(cv.cvtColor(right, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6)
         )
 
         # values from matching are float, normalize them between 0-255 as integer
-        disparity = cv.normalize(disparity, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+        disparity = cv.normalize(cv.resize(disparity, (0, 0), fx=1/.6, fy=1/.6), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
 
         delta_disparity = App.compare_disparities(disparity, centroid)
 
@@ -305,7 +319,7 @@ class App:
         return delta_disparity
 
     @staticmethod
-    def gaussian_weights(kernel_len, std=1.5):
+    def gaussian_weights(kernel_len, std=2.5):
         """Returns a 2D Gaussian kernel array."""
         gauss_kernel_1d = signal.gaussian(kernel_len, std=std).reshape(kernel_len, 1)
         gauss_kernel_2d = np.outer(gauss_kernel_1d, gauss_kernel_1d)
@@ -315,27 +329,31 @@ class App:
     def tip_averaging(tip):
         # Gaussian weights for the tip
         weights = App.gaussian_weights(kernel_len=100)
+
+        weights[tip <= 20] = 1e-7
         # weighted average disparity value for the tip
         avg_tip = np.average(tip, weights=weights)
-        avg_tip_w_penalty = avg_tip * .93  # subtract a 7% error margin
         return avg_tip
 
     @staticmethod
     def retina_averaging(retina, tip_avg):
         # clip retina's disparities
-        retina = np.clip(retina, 20, int(tip_avg))
+        retina = np.clip(retina, 1e-7, int(tip_avg))
 
         # weights for the background
         weights = np.full_like(retina, fill_value=tip_avg, dtype=np.uint8)
-        weights = np.clip(np.subtract(weights, retina), a_min=10e-4, a_max=int(tip_avg))
+        weights = np.clip(np.subtract(weights, retina), a_min=1e-7, a_max=int(tip_avg))
         # get rid of meaningless areas
-        weights[retina < 10] = 10e-4
+        weights[retina < 10] = 1e-7
         # get rid of white noise near edges and outliers
-        weights[retina > tip_avg] = 10e-4
+        weights[retina >= tip_avg] = 1e-7
         # normalize weights
-        weights = cv.normalize(weights, None, 10e-4, 1, cv.NORM_MINMAX, cv.CV_32F)
+        weights = cv.normalize(weights, None, 1e-7, 1, cv.NORM_MINMAX, cv.CV_32F)
         # weighted average and median disparity value for the retina
         avg_retina = np.average(retina, weights=weights)
+        # add a penalty, i.e. increase it by 7%, the retina avg value to
+        # take into account noise and to have a larger margin of error
+        avg_retina_w_penalty = avg_retina * 1.07
         return avg_retina
 
 
