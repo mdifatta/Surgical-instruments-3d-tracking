@@ -10,11 +10,12 @@ import numpy as np
 import pandas as pd
 import tqdm
 from keras import backend as K
-from keras.activations import relu, sigmoid
+from keras.activations import relu
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.models import Sequential
 from keras.optimizers import sgd
+from keras.regularizers import l2
 from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
@@ -44,15 +45,12 @@ class MyGenerator(Sequence):
 
     def process_data(self, img: np.array):
         img = cv.resize(img, self.resize_target)
-        # img = np.expand_dims(img, axis=2)
 
         return img
 
     def process_targets(self, df: pd.DataFrame):
         targets = []
-        # df.loc[df['p2'] == '-1', 'p2'] = '(-1, -1)'
-        df['p'] = [eval(x) for x in df['p1']]
-        df = df.drop(labels=['p1', 'p2', 'valid', 'dist'], axis=1)
+        df['p'] = [eval(x) for x in df['p']]
         for x in df['p']:
             targets.append(np.array(x))
 
@@ -93,10 +91,9 @@ def root_mean_squared_error(y_true, y_pred):
 
 
 def R2(y_true, y_pred):
-    from keras import backend as K
-    SS_res =  K.sum(K.square( y_true-y_pred ))
-    SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
-    return ( 1 - SS_res/(SS_tot + K.epsilon()) )
+    SS_res=K.sum(K.square(y_true-y_pred))
+    SS_tot=K.sum(K.square(y_true - K.mean(y_true)))
+    return 1 - SS_res/(SS_tot + K.epsilon())
 
 
 def process_image(img: np.array, shape):
@@ -127,8 +124,8 @@ def load_targets(df: pd.DataFrame):
     print('Loading targets ...')
     targets = []
     # df.loc[df['p2'] == '-1', 'p2'] = '(-1, -1)'
-    df['p'] = [eval(x) for x in df['p1']]
-    df = df.drop(labels=['p1', 'p2', 'valid', 'dist'], axis=1)
+    # df['p'] = [eval(x) for x in df['p']]
+    # df = df.drop(labels=['p1', 'p2', 'valid', 'dist'], axis=1)
     for x in df['p']:
         targets.append(np.array(x))
     print('Targets loaded.')
@@ -166,9 +163,13 @@ def main():
         # create base path for images
         base_path = '../../data/datasets/all_distance_frames/'
         # read targets csv
-        df = pd.read_csv('../../data/targets/targets.csv', sep=';')
+        df = pd.read_csv('../../data/targets/targets-v2.csv', sep=';')
+        # take only valid frames
+        df = df[df['p'] != '(-1, -1)']
+        # shuffle data
+        df = shuffle(df)
         # get a subset of the lines for local testing
-        df = df.loc[:500, :]
+        df = df.iloc[:500, :]
         # local batch size to handle restricted dataset dimension
         batch_size = 10
     else:
@@ -177,12 +178,10 @@ def main():
         base_path = './frames/'
         # read targets csv
         df = pd.read_csv('./targets/targets.csv', sep=';')
-
-    # take only valid frames
-    df = df[df.valid == 1]
-
-    # shuffle data
-    df = shuffle(df)
+        # take only valid frames
+        df = df[df['p'] != '(-1, -1)']
+        # shuffle data
+        df = shuffle(df)
 
     # split train and test as 90/10
     (train_df, test_df) = train_test_split(df,
@@ -235,14 +234,16 @@ def main():
 
     # compile the model
     model.compile(optimizer=sgd(lr=learning_rate, momentum=momentum),
-                  loss=mean_absolute_error,
-                  metrics=['mean_squared_error', root_mean_squared_error]
+                  loss=root_mean_squared_error,
+                  metrics=[R2]
                   )
 
     model.summary()
 
     # callbacks
-    callbacks = [EarlyStopping(monitor='val_loss', patience=10, mode='min')]
+    callbacks = [EarlyStopping(monitor='val_loss', patience=10, mode='min'),
+                 ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_' + timestamp + '.h5', monitor='val_loss',
+                                 verbose=1, save_best_only=True, mode='min', period=1)]
 
     # train the model
     history = model.fit_generator(
@@ -257,15 +258,13 @@ def main():
 
     print('Training ended...')
 
-    timestamp = datetime.datetime.now().strftime("%m-%d-%H:%M")
-
-    plt.plot(history.history['root_mean_squared_error'], label='Train rmse', color='red')
-    plt.plot(history.history['val_root_mean_squared_error'], label='Valid rmse', color='green')
-    plt.title('model mse over epochs')
-    plt.ylabel('rmse')
+    plt.plot(history.history['R2'], label='Train R2', color='red')
+    plt.plot(history.history['val_R2'], label='Valid R2', color='green')
+    plt.title('model R2 over epochs')
+    plt.ylabel('R2')
     plt.xlabel('epochs')
     plt.legend()
-    plt.savefig('./training_outputs/rmse[' + timestamp + '].png')
+    plt.savefig('./training_outputs/r2[' + timestamp + '].png')
 
     plt.figure()
     plt.plot(history.history['loss'], label='Train loss', color='red')
@@ -310,13 +309,13 @@ def main():
         im = cv.imread(base_path + filename)
         im = im.astype(np.float32)
         # draw prediction
-        cv.circle(im, (int(p[0] * 240), int(p[1] * 320)), 3, (0, 0, 255), -1, cv.LINE_AA)
+        cv.circle(im, (int(p[0] * 240), int(p[1] * 320)), 1, (0, 0, 255), -1, cv.LINE_AA)
         # draw ground truth
-        cv.circle(im, (int(t[0]), int(t[1])), 3, (0, 255, 0), -1, cv.LINE_AA)
+        cv.circle(im, (int(t[0]), int(t[1])), 1, (0, 255, 0), -1, cv.LINE_AA)
         cv.putText(im, 'pred:(' + str(p[0] * 240) + ',' + str(p[1] * 320) + ')', (20, 220),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
-        cv.putText(im, 'real:(' + str(t[0] * 240) + ',' + str(t[1] * 320) + ')', (20, 200),
+        cv.putText(im, 'real:(' + str(t[0]) + ',' + str(t[1]) + ')', (20, 200),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 255, 0))
 
