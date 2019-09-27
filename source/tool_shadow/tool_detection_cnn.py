@@ -243,7 +243,7 @@ def main():
     # callbacks
     callbacks = [EarlyStopping(monitor='val_loss', patience=10, mode='min'),
                  ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_' + timestamp + '.h5', monitor='val_loss',
-                                 verbose=1, save_best_only=True, mode='min', period=1)]
+                                 verbose=1, save_best_only=True, save_weights_only=True, mode='min', period=1)]
 
     # train the model
     history = model.fit_generator(
@@ -281,7 +281,9 @@ def main():
         steps=(num_test_samples // batch_size),
         verbose=1
     )
-
+    # performannce on test set
+    print('#######################')
+    print('Performance on test set')
     print('%s: %.2f%%' % (model.metrics_names[1], test_score[1] * 100))
     print('%s: %.2f%%' % (model.metrics_names[0], test_score[0]))
 
@@ -322,6 +324,25 @@ def main():
         cv.imwrite('./preds/pred%d.png' % i, im)
 
         i += 1
+
+    diff = np.abs(testY - preds)
+    error = []
+    for n in diff:
+        error.append(np.sqrt(n[0]**2 + n[1]**2))
+    avg_error = np.mean(error)
+    print(avg_error)
+    std_error = np.std(error)
+    print(std_error)
+    errors = pd.DataFrame(zip(testX, testY, preds, error),
+                          columns=['file', 'real', 'predicted', 'error'])
+
+    labels = errors['file'].to_list()
+    labels = [l[:-4] for l in labels]
+    plt.figure()
+    plt.title('Error distribution - Avg: %.2f - Std: %.2f' % (avg_error, std_error))
+    plt.scatter(labels, errors['error'].to_list())
+    plt.xticks(rotation=90, fontsize=6)
+    plt.savefig('./training_outputs/errors_distr[' + timestamp + '].png')
 
     with open("./training_outputs/params_" + timestamp + ".txt", "w") as text_file:
         text_file.write("Training params:\nbatch_size=%d\nlearning_rate=%.3f\nmomentum=%.2f"
