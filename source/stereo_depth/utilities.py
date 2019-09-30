@@ -1,8 +1,9 @@
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 import os
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 DATA_PATH = "./data/"
 OUTPUT_PATH = "./outputs/"
@@ -10,8 +11,8 @@ OUTPUT_PATH = "./outputs/"
 
 def matching_points(left_img, right_img, save=False, filename='output'):
     orb = cv2.ORB_create()
-    kp1, des1 = orb.detectAndCompute(left_img, None)
-    kp2, des2 = orb.detectAndCompute(right_img, None)
+    kp1, des1 = orb.detectAndCompute(increase_brightness(left_img), None)
+    kp2, des2 = orb.detectAndCompute(increase_brightness(right_img), None)
 
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
@@ -28,6 +29,19 @@ def matching_points(left_img, right_img, save=False, filename='output'):
 
     if save:
         cv2.imwrite(os.path.join(OUTPUT_PATH, filename+'.png'), img3)
+
+
+def increase_brightness(img, value=60):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    v[v > lim] = 255
+    v[v <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return img
 
 
 def enhance_contrast_brightness(left_img, right_img):
@@ -100,3 +114,43 @@ def circle_hough(image):
     plt.figure()
     plt.imshow(gray, 'gray')
     plt.show()
+
+
+def crop(left, right):
+    ret2, thr_left = cv2.threshold(cv2.cvtColor(left, cv2.COLOR_BGR2GRAY),
+                                   0,
+                                   255,
+                                   cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                                   )
+
+    ret3, thr_right = cv2.threshold(cv2.cvtColor(right, cv2.COLOR_BGR2GRAY),
+                                    0,
+                                    255,
+                                    cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                                    )
+
+    mask_left = cv2.findNonZero(thr_left)
+
+    left_edge = mask_left[:, 0, 0].min()
+    right_edge = mask_left[:, 0, 0].max()
+
+    delta = right_edge - left_edge
+    delta2 = 1280 - delta
+    left_margin = int(delta2 / 2)
+    right_margin = delta2 - left_margin
+
+    left_cropped = left[:, left_edge - left_margin:right_edge + right_margin, :]
+
+    mask_right = cv2.findNonZero(thr_right)
+
+    left_edge = mask_right[:, 0, 0].min()
+    right_edge = mask_right[:, 0, 0].max()
+
+    delta = right_edge - left_edge
+    delta2 = 1280 - delta
+    left_margin = int(delta2 / 2)
+    right_margin = delta2 - left_margin
+
+    right_cropped = right[:, left_edge - left_margin:right_edge + right_margin, :]
+
+    return left_cropped, right_cropped
