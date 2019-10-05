@@ -389,7 +389,7 @@ def main():
     print(std_error)
     errors = pd.DataFrame(zip(testX, testY, preds, error),
                           columns=['file', 'real', 'predicted', 'error'])
-    errors[['file', 'error']].to_csv("./training_outputs/frames_w_errors")
+    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames")
 
     labels = errors['file'].to_list()
     labels = [l[:-4] for l in labels]
