@@ -141,6 +141,10 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
 
+def custom_loss(y_true, y_pred):
+    return K.mean(K.sqrt(K.sum(K.square(y_true - y_pred), axis = -1, keepdims = True)))
+
+
 def R2(y_true, y_pred):
     SS_res=K.sum(K.square(y_true-y_pred))
     SS_tot=K.sum(K.square(y_true - K.mean(y_true)))
@@ -284,8 +288,8 @@ def main():
     model = build_model(input_shape)
 
     # compile the model
-    model.compile(optimizer=sgd(lr=learning_rate, momentum=momentum),
-                  loss=root_mean_squared_error,
+    model.compile(optimizer=Adam(lr=learning_rate),
+                  loss=custom_loss,
                   metrics=[R2]
                   )
 
