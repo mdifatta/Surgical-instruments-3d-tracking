@@ -37,9 +37,17 @@ class App:
 
     def run(self):
         l_edge, r_edge = 0, -1
-        while self.frame_idx < self.frames_count:
+
+        if not self.cam.isOpened():
+            print('Error reading video')
+            return
+
+        while self.cam.isOpened():  #self.frame_idx < self.frames_count:
             # read next frame
             _ret, frame = self.cam.read()
+            if not _ret:
+                self.frame_idx += 1
+                continue
             # crop frame to remove TrueVision logo which interferes ORB detection
             frame = frame[:1030, :, :]
             if self.frame_idx == 0:
