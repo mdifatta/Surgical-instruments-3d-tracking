@@ -87,6 +87,56 @@ def build_model(input_shape):
     return model
 
 
+def build_wider_model(input_shape):
+    model = Sequential()
+    model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
+                     data_format='channels_last', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.05))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.1))
+    model.add(Conv2D(filters=128, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.2))
+    model.add(Flatten())
+    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.3))
+    model.add(Dense(units=2, activation=relu, kernel_regularizer=l2(5e-4)))
+
+    return model
+
+
+def build_deeper_model(input_shape):
+    model = Sequential()
+    model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
+                     data_format='channels_last', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.05))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.1))
+    model.add(Conv2D(filters=128, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.2))
+    model.add(Conv2D(filters=256, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.2))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.2))
+    model.add(Flatten())
+    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.3))
+    model.add(Dense(units=2, activation=relu, kernel_regularizer=l2(5e-4)))
+
+    return model
+
+
 def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
