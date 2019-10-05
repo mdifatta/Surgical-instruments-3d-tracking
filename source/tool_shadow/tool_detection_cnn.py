@@ -14,9 +14,10 @@ from keras.activations import relu
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.models import Sequential
-from keras.optimizers import sgd
+from keras.optimizers import Adam
 from keras.regularizers import l2
 from keras.utils import Sequence
+from scipy.spatial import distance
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
@@ -66,21 +67,21 @@ class MyGenerator(Sequence):
 def build_model(input_shape):
     model = Sequential()
     model.add(Conv2D(filters=16, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
-                     data_format='channels_last'))
+                     data_format='channels_last', kernel_regularizer=l2(5e-4)))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.05))
-    model.add(Conv2D(filters=32, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(Conv2D(filters=32, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.1))
-    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
     model.add(Flatten())
-    model.add(Dense(units=250, activation=relu))
+    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
     model.add(Dropout(rate=0.2))
-    model.add(Dense(units=250, activation=relu))
+    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
     model.add(Dropout(rate=0.3))
-    model.add(Dense(units=2, activation=sigmoid))
+    model.add(Dense(units=2, activation=relu, kernel_regularizer=l2(5e-4)))
     # model.add(LeakyReLU(alpha=.2))
 
     return model
