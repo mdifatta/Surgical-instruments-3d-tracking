@@ -13,6 +13,10 @@ from tqdm import tqdm
 base_path = '../../data/datasets/all_distance_frames/'
 
 
+def root_mean_squared_error(y_true, y_pred):
+    return np.sqrt(np.mean(np.square(y_pred - y_true)))
+
+
 def load_images(filenames):
     # images container
     images = []
@@ -34,7 +38,7 @@ def load_targets(targets):
 def main():
     df = pd.read_csv('../../data/targets/targets-v2.csv', sep=';')
     df = shuffle(df[df['p'] != '(-1, -1)'])
-    sample = df.sample(n=300)
+    sample = df.sample(n=600)
 
     x = load_images(sample['file'].tolist())
     y = load_targets(sample['p'].tolist())
@@ -60,7 +64,7 @@ def main():
         cv.circle(im, (int(pred[0]), int(pred[1])), 1, (0, 0, 255), -1, cv.LINE_AA)
         # draw ground truth
         cv.circle(im, (int(target[0]), int(target[1])), 1, (0, 255, 0), -1, cv.LINE_AA)
-        cv.putText(im, 'pred:(' + str(pred[0] * 240) + ',' + str(pred[1] * 320) + ')', (20, 220),
+        cv.putText(im, 'pred:(' + str(pred[0]) + ',' + str(pred[1]) + ')', (20, 220),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
         cv.putText(im, 'real:(' + str(target[0]) + ',' + str(target[1]) + ')', (20, 200),
@@ -73,6 +77,8 @@ def main():
 
     avg_error = float(np.mean(error, dtype=np.float64))
     std_error = float(np.std(error, dtype=np.float64))
+    rmse = root_mean_squared_error(y, pred_y)
+    print(rmse)
     print(avg_error)
     print(std_error)
 
