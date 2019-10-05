@@ -340,7 +340,7 @@ def main():
     print('#######################')
     print('Performance on test set')
     print('%s: %.2f%%' % (model.metrics_names[1], test_score[1] * 100))
-    print('%s: %.2f%%' % (model.metrics_names[0], test_score[0]))
+    print('%s: %.2f' % (model.metrics_names[0], test_score[0]))
 
     # serialize model to JSON
     model_json = model.to_json()
@@ -357,39 +357,39 @@ def main():
     end = time.time()
     print('Predictions a total of %.3f and an average of %.3f for each frame.' % (end - start, (end-start)/num_test_samples))
 
-    i = 0
     # load filenames and ground truth
     testX = test_df['file'].tolist()
     testY = load_targets(test_df)
 
+    for p in preds:
+        p[0] = p[0] * 240
+        p[1] = p[1] * 320
+
+    error = []
     for p, filename, t in zip(preds, testX, testY):
+        error.append(distance.euclidean(p, t))
         im = cv.imread(base_path + filename)
         im = im.astype(np.float32)
         # draw prediction
-        cv.circle(im, (int(p[0] * 240), int(p[1] * 320)), 1, (0, 0, 255), -1, cv.LINE_AA)
+        cv.circle(im, (int(p[0]), int(p[1])), 1, (0, 0, 255), -1, cv.LINE_AA)
         # draw ground truth
         cv.circle(im, (int(t[0]), int(t[1])), 1, (0, 255, 0), -1, cv.LINE_AA)
-        cv.putText(im, 'pred:(' + str(p[0] * 240) + ',' + str(p[1] * 320) + ')', (20, 220),
+        cv.putText(im, 'pred:(' + str(p[0]) + ',' + str(p[1]) + ')', (20, 220),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
         cv.putText(im, 'real:(' + str(t[0]) + ',' + str(t[1]) + ')', (20, 200),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 255, 0))
 
-        cv.imwrite('./preds/pred%d.png' % i, im)
+        cv.imwrite('./preds/%s.png' % filename, im)
 
-        i += 1
-
-    diff = np.abs(testY - preds)
-    error = []
-    for n in diff:
-        error.append(np.sqrt(n[0]**2 + n[1]**2))
-    avg_error = np.mean(error)
+    avg_error = float(np.mean(error, dtype=np.float64))
     print(avg_error)
-    std_error = np.std(error)
+    std_error = float(np.std(error, dtype=np.float64))
     print(std_error)
     errors = pd.DataFrame(zip(testX, testY, preds, error),
                           columns=['file', 'real', 'predicted', 'error'])
+    errors[['file', 'error']].to_csv("./training_outputs/frames_w_errors")
 
     labels = errors['file'].to_list()
     labels = [l[:-4] for l in labels]
