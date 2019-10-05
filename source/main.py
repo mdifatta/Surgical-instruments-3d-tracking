@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import cv2 as cv
 import numpy as np
+from keras.models import model_from_json
 from scipy import signal
 
 
@@ -132,6 +133,15 @@ class App:
         self.stereo_matcher = cv.StereoSGBM_create(
             **StereoParams.fast_stereo_match_params
         )
+        self.curr_frame = None
+        model_file = './tool_shadow/trained_model/tool_10-01.json'
+        weights_file = './tool_shadow/trained_model/weights_10-01.h5'
+        json_file = open(model_file, 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        self.loaded_model = model_from_json(loaded_model_json)
+        self.loaded_model.load_weights(weights_file)
+        print("Loaded model from disk")
 
     def run(self):
         left_edge, right_edge = 0, -1
@@ -146,7 +156,7 @@ class App:
                 self.frame_idx += 1
                 continue
             # crop frame to remove TrueVision logo which interferes with ORB detection and stereo matching
-            full_frame = full_frame[:1030, :, :]
+            full_frame = full_frame[:1026, :, :]
             # divide left and right frame from the stereo frame
             mid = int(full_frame.shape[1] / 2)
             left_frame = full_frame[:, 0:mid, :]
@@ -154,10 +164,11 @@ class App:
             # get a copy of the left frame as reference for the Optical Flow
             frame = left_frame
             if self.frame_idx == 0:
-                left_edge, right_edge = self.crop(frame)
+                left_edge, right_edge = self.crop(frame, width=1368)
             # crop black bands from frames' edges
             left_frame = left_frame[:, left_edge:right_edge, :]
             right_frame = right_frame[:, left_edge:right_edge, :]
+            self.curr_frame = left_frame
             frame_gray = cv.cvtColor(left_frame, cv.COLOR_BGR2GRAY)
             # create a working copy of the current frame
             vis = left_frame.copy()
@@ -217,6 +228,7 @@ class App:
                 # mask = self.smart_mask(mask, frame_gray)
                 mask[:, :] = 255
                 # detect ORB points
+                self.detect_tip()
                 kp = self.orb.detect(frame_gray, mask=mask)
                 # sort points from the best to the worst one
 
@@ -268,7 +280,7 @@ class App:
             return frame
 
     @staticmethod
-    def crop(frame, width=1030):
+    def crop(frame, width=1368):
         _, thr = cv.threshold(cv.cvtColor(frame, cv.COLOR_BGR2GRAY),
                               0,
                               255,
@@ -397,6 +409,17 @@ class App:
         # take into account noise and to have a larger margin of error
         avg_retina_w_penalty = avg_retina * 1.07
         return avg_retina
+
+    def detect_tip(self):
+        # resize image
+        curr_img = cv.resize(self.curr_frame, (320, 240))
+        # expand dims to include batch size
+        _input = np.expand_dims(curr_img, axis=0)
+        # run CNN
+        pred = self.loaded_model.predict(_input / 255.0, batch_size=1)
+        # re-scale predictions
+        pred[0][0] = pred[0][0] * 240
+        pred[0][1] = pred[0][1] * 320
 
 
 def main():
