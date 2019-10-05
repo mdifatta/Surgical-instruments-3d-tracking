@@ -1,92 +1,75 @@
-from keras.optimizers import rmsprop
-from keras.losses import categorical_crossentropy
-from keras_preprocessing.image import ImageDataGenerator
-from keras.callbacks import EarlyStopping
 import pandas as pd
+from keras.applications.densenet import DenseNet121
+from keras.callbacks import EarlyStopping
+from keras.losses import categorical_crossentropy
+from keras.optimizers import rmsprop
+from keras_preprocessing.image import ImageDataGenerator
 from matplotlib import pyplot as plt
-from sklearn.utils import shuffle
-
-from models import mobile_net
 
 
 def main():
     # ######################### PARAMS ##############################
-    batch_size = 64
+    batch_size = 32
     target_shape = (320, 240)
-    learning_rate = .0015
+    learning_rate = .0001
     input_shape = (320, 240, 3)
+    ENV = 'local'
     # ###############################################################
 
-    # read entire csv
-    df = pd.read_csv('./targets/targets.csv', sep=';')
+    if ENV == 'local':
+        # ######################## local ############################
+        # read train csv
+        train_path = '../../../data/datasets/all_distance_frames/'
+        train = pd.read_csv('../../../data/targets/train.csv', sep=';')
 
-    # shuffle rows
-    df = shuffle(df)
+        # read test csv
+        test_path = '../../../data/datasets/all_distance_frames/'
+        test = pd.read_csv('../../../data/targets/test.csv', sep=';')
 
-    # count rows
-    train_len = int((2 / 3) * len(df.index))
+        # read valid csv
+        valid_path = '../../../data/datasets/all_distance_frames/'
+        valid = pd.read_csv('../../../data/targets/valid.csv', sep=';')
+    else:
+        # ################# for colab ####################
+        # read train csv
+        train_path = './frames/'
+        train = pd.read_csv('./targets/train.csv', sep=';')
 
-    valid_len = int(.2 * train_len)
+        # read test csv
+        test_path = './frames/'
+        test = pd.read_csv('./targets/test.csv', sep=';')
 
-    # split train and test set
-    train, test = df[:train_len], df[train_len:]
+        # read valid csv
+        valid_path = './frames/'
+        valid = pd.read_csv('./targets/valid.csv', sep=';')
 
-    # split validation set
-    valid, train = train[:valid_len], train[valid_len:]
-
-    # create new csv files
-    train.to_csv('./targets/train.csv', sep=';', index=False)
-    test.to_csv('./targets/test.csv', sep=';', index=False)
-    valid.to_csv('./targets/valid.csv', sep=';', index=False)
-
-    # dataset's balance
-    print('Training set: %d samples VALID, %d samples INVALID' %
-          (train[train.valid == 1]['valid'].count(), train[train.valid == 0]['valid'].count()))
-
-    print('Test set: %d samples VALID, %d samples INVALID' %
-          (test[test.valid == 1]['valid'].count(), test[test.valid == 0]['valid'].count()))
-
-    print('Validation set: %d samples VALID, %d samples INVALID' %
-          (valid[valid.valid == 1]['valid'].count(), valid[valid.valid == 0]['valid'].count()))
-
-    # read train csv
-    # ######################## local ############################
-    #train_path = '../../data/datasets/all_distance_frames/'
-    #train = pd.read_csv('../../data/targets/train.csv', sep=';')
-    # ##########################################################
-
-    # ################# for colab ####################
-    train_path = './frames/'
-    train = pd.read_csv('./targets/train.csv', sep=';')
-    # ################################################
     train['valid'] = train['valid'].astype('str')
     train = train.drop(labels=['p1', 'p2', 'dist'], axis=1)
 
-    # read test csv
-    # ######################## local ############################
-    #test_path = '../../data/datasets/all_distance_frames/'
-    #test = pd.read_csv('../../data/targets/test.csv', sep=';')
-    # ##########################################################
-
-    # ################# for colab ####################
-    test_path = './frames/'
-    test = pd.read_csv('./targets/test.csv', sep=';')
-    # ################################################
     test['valid'] = test['valid'].astype('str')
     test = test.drop(labels=['p1', 'p2', 'dist'], axis=1)
 
-    # read valid csv
-    # ######################## local ############################
-    #valid_path = '../../data/datasets/all_distance_frames/'
-    #valid = pd.read_csv('../../data/targets/valid.csv', sep=';')
-    # ##########################################################
-
-    # ################# for colab ####################
-    valid_path = './frames/'
-    valid = pd.read_csv('./targets/valid.csv', sep=';')
-    # ################################################
     valid['valid'] = valid['valid'].astype('str')
     valid = valid.drop(labels=['p1', 'p2', 'dist'], axis=1)
+
+    # dataset's balance
+    val = train[train.valid == '1']['valid'].count()
+    inval = train[train.valid == '0']['valid'].count()
+    tot = val + inval
+    print('Training set: %d (%.2f) VALID, %d (%.2f) INVALID' %
+          (val, val/tot, inval, inval/tot))
+
+    val = test[test.valid == '1']['valid'].count()
+    inval = test[test.valid == '0']['valid'].count()
+    tot = val + inval
+    print('Test set: %d (%.2f) VALID, %d (%.2f) INVALID' %
+          (val, val/tot, inval, inval/tot))
+
+    val = valid[valid.valid == '1']['valid'].count()
+    inval = valid[valid.valid == '0']['valid'].count()
+    tot = val + inval
+    print('Validation set: %d (%.2f) VALID, %d (%.2f) INVALID' %
+          (val, val/tot, inval, inval/tot))
 
     # create training set generator
     train_data_gen = ImageDataGenerator()
@@ -130,7 +113,10 @@ def main():
     )
 
     # build the model
-    model = mobile_net(input_shape)
+    # model = mobile_net(input_shape)
+    # model = MobileNet(input_shape=input_shape, weights=None, classes=2)
+    # model = MobileNetV2(input_shape=input_shape, weights=None, classes=2)
+    model = DenseNet121(include_top=False, input_shape=input_shape, weights='None')
 
     STEP_SIZE_TRAIN = train_generator.n // train_generator.batch_size
     STEP_SIZE_VALID = valid_generator.n // valid_generator.batch_size
@@ -145,9 +131,9 @@ def main():
     model.summary()
 
     # callbacks
-    callbacks = [EarlyStopping(monitor='val_loss', patience=15)]
+    callbacks = [EarlyStopping(monitor='val_loss', patience=10)]
 
-    class_weights = {0: 2.0,
+    class_weights = {0: 1.1,
                      1: 1.0
                      }
 
@@ -163,21 +149,24 @@ def main():
         class_weight=class_weights
     )
 
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
+    print('Training ended...')
+
+    plt.plot(history.history['acc'], label='Train acc', color='red')
+    plt.plot(history.history['val_acc'], label='Valid acc', color='green')
     plt.title('model accuracy over epochs')
     plt.ylabel('accuracy')
     plt.xlabel('epochs')
-    plt.legend(['train', 'valid'])
-    plt.show()
+    plt.legend()
+    plt.savefig('./accuracy['+ str(batch_size) +','+ str(learning_rate) +'].png')
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
+    plt.figure()
+    plt.plot(history.history['loss'], label='Train loss', color='red')
+    plt.plot(history.history['val_loss'], label='Valid loss', color='green')
     plt.title('model loss over epochs')
     plt.ylabel('loss')
     plt.xlabel('epochs')
-    plt.legend(['train', 'valid'])
-    plt.show()
+    plt.legend()
+    plt.savefig('./loss['+ str(batch_size) +','+ str(learning_rate) +'].png')
 
     test_score = model.evaluate_generator(generator=test_generator,
                                           steps=STEP_SIZE_TEST,
@@ -188,10 +177,10 @@ def main():
 
     # serialize model to JSON
     model_json = model.to_json()
-    with open("./model.json", "w") as json_file:
+    with open("./mobilev2_b"+str(batch_size)+"_lr"+str(learning_rate)+"ds.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
-    model.save_weights("./model.h5")
+    model.save_weights("./mobilev2_b"+str(batch_size)+"_lr"+str(learning_rate)+"ds.h5")
     print("Saved model to disk")
 
 
