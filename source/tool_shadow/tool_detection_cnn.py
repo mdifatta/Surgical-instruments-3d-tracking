@@ -205,9 +205,9 @@ def main():
     args = vars(ap.parse_args())
 
     # ######################### HYPER-PARAMS ##############################
-    batch_size = 64
+    batch_size = 32
     target_shape = (320, 240)
-    learning_rate = .008
+    learning_rate = .001
     momentum = .9
     input_shape = (240, 320, 3)
     ENV = args['env']
@@ -245,8 +245,8 @@ def main():
 
     # split train and valid as 90/10 of previous test
     (train_df, valid_df) = train_test_split(train_df,
-                                            test_size=.1,
-                                            train_size=.9)
+                                            test_size=.2,
+                                            train_size=.8)
 
     # create generators for train ,test and valid
     train_generator = MyGenerator(
