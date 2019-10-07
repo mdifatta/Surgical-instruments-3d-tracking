@@ -227,12 +227,22 @@ def main():
         df = df.iloc[:500, :]
         # local batch size to handle restricted dataset dimension
         batch_size = 10
-    else:
+    elif ENV == 'colab':
         # ################# for colab ####################
         # create base path for images
         base_path = './frames/'
         # read targets csv
         df = pd.read_csv('./targets/targets.csv', sep=';')
+        # take only valid frames
+        df = df[df['p'] != '(-1, -1)']
+        # shuffle data
+        df = shuffle(df)
+    else:
+        # ######################## computer lab ############################
+        # create base path for images
+        base_path = '../../data/datasets/all_distance_frames/'
+        # read targets csv
+        df = pd.read_csv('../../data/targets/targets-v2.csv', sep=';')
         # take only valid frames
         df = df[df['p'] != '(-1, -1)']
         # shuffle data
@@ -297,7 +307,7 @@ def main():
 
     # callbacks
     callbacks = [EarlyStopping(monitor='val_loss', patience=10, mode='min'),
-                 ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_' + timestamp + '.h5', monitor='val_loss',
+                 ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_{}.h5'.format(timestamp), monitor='val_loss',
                                  verbose=1, save_best_only=True, save_weights_only=True, mode='min', period=1)]
 
     # train the model
@@ -319,7 +329,7 @@ def main():
     plt.ylabel('R2')
     plt.xlabel('epochs')
     plt.legend()
-    plt.savefig('./training_outputs/r2[' + timestamp + '].png')
+    plt.savefig('./training_outputs/r2-{}.png'.format(timestamp))
 
     plt.figure()
     plt.plot(history.history['loss'], label='Train loss', color='red')
@@ -328,7 +338,7 @@ def main():
     plt.ylabel('loss')
     plt.xlabel('epochs')
     plt.legend()
-    plt.savefig('./training_outputs/loss[' + timestamp + '].png')
+    plt.savefig('./training_outputs/loss-{}.png'.format(timestamp))
 
     # test_score = model.evaluate(testImages, testY)
     test_score = model.evaluate_generator(
@@ -344,10 +354,10 @@ def main():
 
     # serialize model to JSON
     model_json = model.to_json()
-    with open("./training_outputs/tool_" + timestamp + ".json", "w") as json_file:
+    with open("./training_outputs/tool_{}.json".format(timestamp), "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
-    model.save_weights("./training_outputs/tool_" + timestamp + ".h5")
+    model.save_weights("./training_outputs/tool_{}.h5".format(timestamp))
     print("Saved model to disk")
 
     start = time.time()
@@ -389,7 +399,7 @@ def main():
     print(std_error)
     errors = pd.DataFrame(zip(testX, testY, preds, error),
                           columns=['file', 'real', 'predicted', 'error'])
-    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames")
+    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames.txt")
 
     labels = errors['file'].to_list()
     labels = [l[:-4] for l in labels]
@@ -397,11 +407,7 @@ def main():
     plt.title('Error distribution - Avg: %.2f - Std: %.2f' % (avg_error, std_error))
     plt.scatter(labels, errors['error'].to_list())
     plt.xticks(rotation=90, fontsize=6)
-    plt.savefig('./training_outputs/errors_distr[' + timestamp + '].png')
-
-    with open("./training_outputs/params_" + timestamp + ".txt", "w") as text_file:
-        text_file.write("Training params:\nbatch_size=%d\nlearning_rate=%.3f\nmomentum=%.2f"
-                        % (batch_size, learning_rate, momentum))
+    plt.savefig('./training_outputs/errors_distr-{}.png'.format(timestamp))
 
 
 if __name__ == '__main__':
