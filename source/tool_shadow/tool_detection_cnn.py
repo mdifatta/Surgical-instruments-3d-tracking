@@ -304,7 +304,7 @@ def main():
     print('Training starting at %s.' % timestamp)
 
     # build model
-    model = build_model(input_shape)
+    model = build_deeper_model(input_shape)
 
     # compile the model. i.e. define optimizer, loss function and additional metrics
     model.compile(optimizer=Adam(lr=learning_rate),
