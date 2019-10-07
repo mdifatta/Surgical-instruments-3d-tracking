@@ -22,6 +22,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
 
+# custom DataGenerator used to feed the CNN with data batches
 class MyGenerator(Sequence):
     def __init__(self, image_filenames, targets: pd.DataFrame, batch_size, resize_target, base_path: str):
         self.image_filenames, self.targets = image_filenames, self.process_targets(targets)
@@ -64,6 +65,7 @@ class MyGenerator(Sequence):
         return targets
 
 
+# original CNN topology from the paper with addition of Ridge regularization
 def build_model(input_shape):
     model = Sequential()
     model.add(Conv2D(filters=16, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
@@ -87,6 +89,7 @@ def build_model(input_shape):
     return model
 
 
+# CNN topology with more filters
 def build_wider_model(input_shape):
     model = Sequential()
     model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
@@ -109,6 +112,7 @@ def build_wider_model(input_shape):
     return model
 
 
+# CNN topology with more filter and more layers
 def build_deeper_model(input_shape):
     model = Sequential()
     model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
@@ -141,6 +145,7 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
 
+# custom loss implementing Euclidean Distance
 def custom_loss(y_true, y_pred):
     return K.mean(K.sqrt(K.sum(K.square(y_true - y_pred), axis = -1, keepdims = True)))
 
@@ -198,7 +203,7 @@ def check_matches(images, targets):
 
 
 def main():
-    # construct the argument parser and parse the arguments
+    # construct the argument parser and parse the cmd line arguments
     ap = argparse.ArgumentParser()
     ap.add_argument("-e", "--env", type=str, required=True,
                     help="system where to execute")
@@ -253,12 +258,12 @@ def main():
                                            test_size=.1,
                                            train_size=.9)
 
-    # split train and valid as 90/10 of previous test
+    # split train and valid as 80/20 of previous train
     (train_df, valid_df) = train_test_split(train_df,
                                             test_size=.2,
                                             train_size=.8)
 
-    # create generators for train ,test and valid
+    # create data generators for train, test and valid set
     train_generator = MyGenerator(
         image_filenames=train_df['file'].tolist(),
         targets=train_df,
@@ -286,29 +291,35 @@ def main():
     )
     num_valid_samples = len(valid_df.index)
 
+    # print a summary of dataset size and split size
     print('Dataset summary:')
     print(df.count())
     print('Train samples:%d' % num_train_samples)
     print('Valid samples:%d' % num_valid_samples)
     print('Test samples:%d' % num_test_samples)
 
-    timestamp = datetime.datetime.now().strftime("%m-%d-%H:%M")
+    # create and print a timestamp of when the training is starting; it's also used for file naming
+    timestamp = datetime.datetime.now().strftime("%m-%d-%H-%M")
+    print('####################################')
+    print('Training starting at %s.' % timestamp)
 
     # build model
     model = build_model(input_shape)
 
-    # compile the model
+    # compile the model. i.e. define optimizer, loss function and additional metrics
     model.compile(optimizer=Adam(lr=learning_rate),
                   loss=custom_loss,
                   metrics=[R2]
                   )
 
+    # print model's summary
     model.summary()
 
     # callbacks
     callbacks = [EarlyStopping(monitor='val_loss', patience=10, mode='min'),
-                 ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_{}.h5'.format(timestamp), monitor='val_loss',
-                                 verbose=1, save_best_only=True, save_weights_only=True, mode='min', period=1)]
+                 ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_{}.h5'.format(timestamp),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True, mode='min',
+                                 period=1)]
 
     # train the model
     history = model.fit_generator(
@@ -323,6 +334,7 @@ def main():
 
     print('Training ended...')
 
+    # plot and save metrics' evolution
     plt.plot(history.history['R2'], label='Train R2', color='red')
     plt.plot(history.history['val_R2'], label='Valid R2', color='green')
     plt.title('model R2 over epochs')
@@ -331,6 +343,7 @@ def main():
     plt.legend()
     plt.savefig('./training_outputs/r2-{}.png'.format(timestamp))
 
+    # plot and save loss' evolution
     plt.figure()
     plt.plot(history.history['loss'], label='Train loss', color='red')
     plt.plot(history.history['val_loss'], label='Valid loss', color='green')
@@ -341,12 +354,13 @@ def main():
     plt.savefig('./training_outputs/loss-{}.png'.format(timestamp))
 
     # test_score = model.evaluate(testImages, testY)
+    # perform test onf the test set
     test_score = model.evaluate_generator(
         generator=test_generator,
         steps=(num_test_samples // batch_size),
         verbose=1
     )
-    # performannce on test set
+    # print performance on test set
     print('#######################')
     print('Performance on test set')
     print('%s: %.2f%%' % (model.metrics_names[1], test_score[1] * 100))
@@ -360,6 +374,7 @@ def main():
     model.save_weights("./training_outputs/tool_{}.h5".format(timestamp))
     print("Saved model to disk")
 
+    # perform predictions on the test set again to print predictions and compute running time
     start = time.time()
     preds = model.predict_generator(
         generator=test_generator
@@ -371,10 +386,12 @@ def main():
     testX = test_df['file'].tolist()
     testY = load_targets(test_df)
 
+    # rescale predicted coordinates
     for p in preds:
         p[0] = p[0] * 240
         p[1] = p[1] * 320
 
+    # generate predictions files
     error = []
     for p, filename, t in zip(preds, testX, testY):
         error.append(distance.euclidean(p, t))
@@ -393,13 +410,14 @@ def main():
 
         cv.imwrite('./preds/%s.png' % filename, im)
 
+    # compute summary statistics and save plots
     avg_error = float(np.mean(error, dtype=np.float64))
     print(avg_error)
     std_error = float(np.std(error, dtype=np.float64))
     print(std_error)
     errors = pd.DataFrame(zip(testX, testY, preds, error),
                           columns=['file', 'real', 'predicted', 'error'])
-    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames.txt")
+    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames-{}.txt".format(timestamp))
 
     labels = errors['file'].to_list()
     labels = [l[:-4] for l in labels]
@@ -408,6 +426,10 @@ def main():
     plt.scatter(labels, errors['error'].to_list())
     plt.xticks(rotation=90, fontsize=6)
     plt.savefig('./training_outputs/errors_distr-{}.png'.format(timestamp))
+
+    with open("./training_outputs/model_snapshot_%s.txt" % timestamp, "w") as text_file:
+        text_file.write("Training params:\nbatch_size=%d\nlearning_rate=%.3f\n"
+                        % (batch_size, learning_rate, momentum))
 
 
 if __name__ == '__main__':
