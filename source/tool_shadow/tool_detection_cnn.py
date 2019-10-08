@@ -304,7 +304,7 @@ def main():
     print('Training starting at %s.' % timestamp)
 
     # build model
-    model = build_model(input_shape)
+    model = build_deeper_model(input_shape)
 
     # compile the model. i.e. define optimizer, loss function and additional metrics
     model.compile(optimizer=Adam(lr=learning_rate),
@@ -408,7 +408,7 @@ def main():
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 255, 0))
 
-        cv.imwrite('./preds/%s.png' % filename, im)
+        cv.imwrite('./preds/%s' % filename, im)
 
     # compute summary statistics and save plots
     avg_error = float(np.mean(error, dtype=np.float64))
@@ -422,7 +422,7 @@ def main():
     labels = errors['file'].to_list()
     labels = [l[:-4] for l in labels]
     plt.figure()
-    plt.title('Error distribution - Avg: %.2f - Std: %.2f' % (avg_error, std_error))
+    plt.title('Error distribution - Avg: {} - Std: {}}'.format(avg_error, std_error))
     plt.scatter(labels, errors['error'].to_list())
     plt.xticks(rotation=90, fontsize=6)
     plt.savefig('./training_outputs/errors_distr-{}.png'.format(timestamp))
