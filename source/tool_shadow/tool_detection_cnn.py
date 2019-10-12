@@ -422,21 +422,23 @@ def main():
     print(avg_error)
     std_error = float(np.std(error, dtype=np.float64))
     print(std_error)
-    errors = pd.DataFrame(zip(testX, testY, preds, error),
-                          columns=['file', 'real', 'predicted', 'error'])
-    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames-{}.txt".format(timestamp))
+    errors = pd.DataFrame(zip(testX, error), columns=['file', 'error'])
+    errors.to_csv("./training_outputs/error-on-frames-{}.txt".format(timestamp))
 
-    labels = errors['file'].to_list()
-    labels = [l[:-4] for l in labels]
+    errors.describe().to_csv("./training_outputs/errors_stats_%s.txt" % timestamp)
+
     plt.figure()
-    plt.title('Error distribution - Avg: {} - Std: {}}'.format(avg_error, std_error))
-    plt.scatter(labels, errors['error'].to_list())
-    plt.xticks(rotation=90, fontsize=6)
-    plt.savefig('./training_outputs/errors_distr-{}.png'.format(timestamp))
+    ax = sns.distplot(errors.error)
+    f = ax.get_figure()
+    f.savefig("./training_outputs/errors_dist_{}.png".format(timestamp))
 
     with open("./training_outputs/model_snapshot_%s.txt" % timestamp, "w") as text_file:
-        text_file.write("Training params:\nbatch_size=%d\nlearning_rate=%.3f\n"
-                        % (batch_size, learning_rate, momentum))
+        text_file.write("Training params:\n"
+                        "model=even-deeper-model\n"
+                        "loss=Euclidean-distance"
+                        "\n"
+                        "batch_size=%d\n"
+                        "learning_rate=%.3f\n" % (batch_size, learning_rate))
 
 
 if __name__ == '__main__':
