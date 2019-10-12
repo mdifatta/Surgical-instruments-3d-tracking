@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tqdm
+import seaborn as sns
 from keras import backend as K
-from keras.activations import relu
+from keras.activations import relu, sigmoid
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.models import Sequential
@@ -131,11 +132,18 @@ def build_deeper_model(input_shape):
     model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
-    model.add(Flatten())
-    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
-    model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
-    model.add(Dropout(rate=0.3))
+    model.add(Flatten())
+    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dropout(rate=0.2))
     model.add(Dense(units=2, activation=relu, kernel_regularizer=l2(5e-4)))
 
     return model
@@ -210,10 +218,9 @@ def main():
     args = vars(ap.parse_args())
 
     # ######################### HYPER-PARAMS ##############################
-    batch_size = 32
+    batch_size = 64
     target_shape = (320, 240)
     learning_rate = .001
-    momentum = .9
     input_shape = (240, 320, 3)
     ENV = args['env']
     # ###############################################################
@@ -415,21 +422,23 @@ def main():
     print(avg_error)
     std_error = float(np.std(error, dtype=np.float64))
     print(std_error)
-    errors = pd.DataFrame(zip(testX, testY, preds, error),
-                          columns=['file', 'real', 'predicted', 'error'])
-    errors[['file', 'error']].to_csv("./training_outputs/error-on-frames-{}.txt".format(timestamp))
+    errors = pd.DataFrame(zip(testX, error), columns=['file', 'error'])
+    errors.to_csv("./training_outputs/error-on-frames-{}.txt".format(timestamp))
 
-    labels = errors['file'].to_list()
-    labels = [l[:-4] for l in labels]
+    errors.describe().to_csv("./training_outputs/errors_stats_%s.txt" % timestamp)
+
     plt.figure()
-    plt.title('Error distribution - Avg: {} - Std: {}}'.format(avg_error, std_error))
-    plt.scatter(labels, errors['error'].to_list())
-    plt.xticks(rotation=90, fontsize=6)
-    plt.savefig('./training_outputs/errors_distr-{}.png'.format(timestamp))
+    ax = sns.distplot(errors.error)
+    f = ax.get_figure()
+    f.savefig("./training_outputs/errors_dist_{}.png".format(timestamp))
 
     with open("./training_outputs/model_snapshot_%s.txt" % timestamp, "w") as text_file:
-        text_file.write("Training params:\nbatch_size=%d\nlearning_rate=%.3f\n"
-                        % (batch_size, learning_rate, momentum))
+        text_file.write("Training params:\n"
+                        "model=even-deeper-model\n"
+                        "loss=Euclidean-distance"
+                        "\n"
+                        "batch_size=%d\n"
+                        "learning_rate=%.3f\n" % (batch_size, learning_rate))
 
 
 if __name__ == '__main__':

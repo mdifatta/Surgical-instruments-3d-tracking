@@ -3,6 +3,7 @@ from ast import literal_eval
 
 import cv2 as cv
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pandas as pd
 from keras.models import model_from_json
@@ -71,24 +72,19 @@ def main():
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 255, 0))
 
-        cv.imwrite('./preds/pred%d.png' % i, im)
+        cv.imwrite('./tpreds/pred%d.png' % i, im)
 
         i += 1
 
-    avg_error = float(np.mean(error, dtype=np.float64))
-    std_error = float(np.std(error, dtype=np.float64))
-    rmse = root_mean_squared_error(y, pred_y)
-    print(rmse)
-    print(avg_error)
-    print(std_error)
+    df = pd.DataFrame(error, columns=['error'])
+    print(df.describe())
 
     labels = sample['file'].to_list()
     labels = [l[:-4] for l in labels]
     plt.figure()
-    plt.title('Error distribution - Avg: %.2f - Std: %.2f' % (avg_error, std_error))
-    plt.scatter(labels, error)
-    plt.xticks(rotation=90, fontsize=5)
-    plt.savefig('./training_outputs/error_distr')
+    sns.distplot(error)
+    plt.savefig('./training_outputs/error_dist_test')
+    plt.show()
 
 
 if __name__ == '__main__':
