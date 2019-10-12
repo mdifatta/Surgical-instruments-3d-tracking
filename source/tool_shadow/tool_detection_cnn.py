@@ -218,10 +218,9 @@ def main():
     args = vars(ap.parse_args())
 
     # ######################### HYPER-PARAMS ##############################
-    batch_size = 32
+    batch_size = 64
     target_shape = (320, 240)
     learning_rate = .001
-    momentum = .9
     input_shape = (240, 320, 3)
     ENV = args['env']
     # ###############################################################
