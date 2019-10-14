@@ -420,6 +420,11 @@ class App:
         # re-scale predictions
         pred[0][0] = pred[0][0] * 240
         pred[0][1] = pred[0][1] * 320
+        # show predicted point for test
+        cv.imshow('test', cv.circle(curr_img, (int(pred[0][0]), int(pred[0][1])), 2, (255, 0, 0), -1, cv.LINE_AA))
+        cv.waitKey()
+        cv.destroyWindow('test')
+        print(pred * 4.275)
 
 
 def main():
