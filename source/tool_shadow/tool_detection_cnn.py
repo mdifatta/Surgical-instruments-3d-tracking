@@ -263,12 +263,14 @@ def main():
     # split train and test as 90/10
     (train_df, test_df) = train_test_split(df,
                                            test_size=.1,
-                                           train_size=.9)
+                                           train_size=.9,
+                                           random_state=8311472)
 
     # split train and valid as 80/20 of previous train
     (train_df, valid_df) = train_test_split(train_df,
                                             test_size=.2,
-                                            train_size=.8)
+                                            train_size=.8,
+                                            random_state=8311472)
 
     # create data generators for train, test and valid set
     train_generator = MyGenerator(
@@ -387,7 +389,8 @@ def main():
         generator=test_generator
     )
     end = time.time()
-    print('Predictions a total of %.3f and an average of %.3f for each frame.' % (end - start, (end-start)/num_test_samples))
+    print('Predictions a total of %.3f and an average of %.3f for each frame.'
+          % (end - start, (end-start)/num_test_samples))
 
     # load filenames and ground truth
     testX = test_df['file'].tolist()
@@ -408,10 +411,10 @@ def main():
         cv.circle(im, (int(p[0]), int(p[1])), 1, (0, 0, 255), -1, cv.LINE_AA)
         # draw ground truth
         cv.circle(im, (int(t[0]), int(t[1])), 1, (0, 255, 0), -1, cv.LINE_AA)
-        cv.putText(im, 'pred:(' + str(p[0]) + ',' + str(p[1]) + ')', (20, 220),
+        cv.putText(im, 'pred:(' + str(p[0]) + ',' + str(p[1]) + ')', (10, 230),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
-        cv.putText(im, 'real:(' + str(t[0]) + ',' + str(t[1]) + ')', (20, 200),
+        cv.putText(im, 'real:(' + str(t[0]) + ',' + str(t[1]) + ')', (10, 220),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 255, 0))
 
