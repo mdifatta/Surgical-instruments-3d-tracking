@@ -1,9 +1,7 @@
-import cv2
 import os
+
+import cv2
 from tqdm import tqdm
-#                          ##################################################
-#                          #########   TO BE RUN ON GOOGLE COLAB   ##########
-#                          ##################################################
 
 
 def crop_and_resize(path):
@@ -33,15 +31,13 @@ def crop_and_resize(path):
     frame = frame[:, left_edge - left_margin:right_edge + right_margin, :]
 
     # resize
-    frame = cv2.resize(frame, dsize=(0, 0), fx=.5, fy=.5)
+    frame = cv2.resize(frame, dsize=(320, 240))
 
     # overwrite
     cv2.imwrite(path, frame)
 
 
 if __name__ == "__main__":
-    folder_names = os.listdir('../data/')
-    for f in folder_names:
-        frame_names = os.listdir('../data/' + f)
-        for fr in tqdm(frame_names):
-            crop_and_resize('../data/' + f + '/' + fr)
+    frame_names = os.listdir('../../data/datasets/2d_frames_folders/clip-6/')
+    for fr in tqdm(frame_names):
+        crop_and_resize('../../data/datasets/2d_frames_folders/clip-6/' + fr)
