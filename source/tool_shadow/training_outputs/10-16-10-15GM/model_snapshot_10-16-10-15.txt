@@ -1,0 +1,5 @@
+Training params:
+model=deeper-model-no-reg-no-aug
+loss=Euclidean-distance
+batch_size=64
+learning_rate=0.001
