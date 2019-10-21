@@ -83,7 +83,6 @@ def main():
     labels = [l[:-4] for l in labels]
     plt.figure()
     sns.distplot(error)
-    plt.savefig('./training_outputs/error_dist_test')
     plt.show()
 
 
