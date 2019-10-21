@@ -115,14 +115,14 @@ class App:
         self.fps = 26
         # OpenCV's video reader
         self.cam = cv.VideoCapture(video_src)
+        # select starting frame
+        self.cam.set(cv.CAP_PROP_POS_FRAMES, 0)
         # starting frame index
         self.frame_idx = 0
         # ORB key-points detector
         self.orb = cv.ORB_create(nfeatures=10)
         # centroid
         self.centroid = ()
-        # set video frame rate
-        self.cam.set(cv.CAP_PROP_FPS, self.fps)
         # frames count
         self.frames_count = self.cam.get(cv.CAP_PROP_FRAME_COUNT)
         # previous gray frame for quality control
@@ -243,7 +243,7 @@ class App:
             # show detected points
             cv.imshow('Lucas-Kanade track with ORB', vis)
 
-            ch = cv.waitKey(1)
+            ch = cv.waitKey(1000 // self.fps)
             if ch == 27:
                 break
 

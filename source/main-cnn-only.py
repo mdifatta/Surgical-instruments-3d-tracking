@@ -187,7 +187,7 @@ class App:
             # show detected points
             cv.imshow('CNN detection + stereo-vision', vis)
 
-            ch = cv.waitKey(1)
+            ch = cv.waitKey(1000 // self.fps)
             if ch == 27:
                 break
 
