@@ -11,8 +11,8 @@ import pandas as pd
 import tqdm
 import seaborn as sns
 from keras import backend as K
-from keras.activations import relu, sigmoid
-from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.activations import relu
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
@@ -325,10 +325,12 @@ def main():
     model.summary()
 
     # callbacks
-    callbacks = [EarlyStopping(monitor='val_loss', patience=10, mode='min'),
+    callbacks = [EarlyStopping(monitor='val_loss', patience=15, mode='min'),
                  ModelCheckpoint(filepath='./training_outputs/weights_checkpoint_{}.h5'.format(timestamp),
                                  monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True, mode='min',
-                                 period=1)]
+                                 period=1),
+                 TensorBoard(log_dir='./logs/tb_{}'.format(timestamp), write_graph=True, write_images=True)
+                 ]
 
     # train the model
     history = model.fit_generator(
@@ -373,7 +375,7 @@ def main():
     print('#######################')
     print('Performance on test set')
     print('%s: %.2f%%' % (model.metrics_names[1], test_score[1] * 100))
-    print('%s: %.2f' % (model.metrics_names[0], test_score[0]))
+    print('%s: %.4f' % (model.metrics_names[0], test_score[0]))
 
     # serialize model to JSON
     model_json = model.to_json()
@@ -436,12 +438,16 @@ def main():
     f.savefig("./training_outputs/errors_dist_{}.png".format(timestamp))
 
     with open("./training_outputs/model_snapshot_%s.txt" % timestamp, "w") as text_file:
-        text_file.write("Training params:\n"
-                        "model=even-deeper-model\n"
+        text_file.write("Training params:"
+                        "\n"
+                        "model=deeper-model-no-aug-no-reg"
+                        "\n"
                         "loss=Euclidean-distance"
                         "\n"
-                        "batch_size=%d\n"
-                        "learning_rate=%.3f\n" % (batch_size, learning_rate))
+                        "batch_size=%d"
+                        "\n"
+                        "learning_rate=%.5f"
+                        "\n" % (batch_size, learning_rate))
 
 
 if __name__ == '__main__':
