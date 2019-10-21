@@ -134,8 +134,8 @@ class App:
             **StereoParams.fast_stereo_match_params
         )
         self.curr_frame = None
-        model_file = './tool_shadow/trained_model/tool_10-01.json'
-        weights_file = './tool_shadow/trained_model/weights_10-01.h5'
+        model_file = './tool_shadow/trained_model/tool_10-16-10-15.json'
+        weights_file = './tool_shadow/trained_model/weights_checkpoint_10-16-10-15.h5'
         json_file = open(model_file, 'r')
         loaded_model_json = json_file.read()
         json_file.close()
