@@ -95,12 +95,10 @@ class StereoParams:
 
 
 class App:
-    # Lucas-Kanade algorithm's params
-    lk_params = dict(winSize=(15, 15),
-                     maxLevel=7,
-                     criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
+    # safety threshold, this value should be tuned
+    SAFETY_THRESHOLD = 15
 
-    SAFETY_THRESHOLD = 13
+    # outcome codes
     DISPARITY_MAP_ERROR_CODE = -1
     UNSAFE_ERROR_CODE = 0
     OK_CODE = 1
@@ -125,6 +123,7 @@ class App:
         self.stereo_matcher = cv.StereoSGBM_create(
             **StereoParams.fast_stereo_match_params
         )
+        # current frame
         self.curr_frame = None
         model_file = './tool_shadow/trained_model/tool_10-16-10-15.json'
         weights_file = './tool_shadow/trained_model/weights_checkpoint_10-16-10-15.h5'
@@ -172,11 +171,16 @@ class App:
                     self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
                                   (self.frame_idx, distance))
                 elif outcome == App.DISPARITY_MAP_ERROR_CODE:
-                    self.draw_str(vis, (20, 20), 'frame: %d, DISP MAP QUALITY INSUFFICIENT' %
-                                  self.frame_idx)
+                    if distance is None:
+                        self.draw_str(vis, (20, 20), 'frame: %d - DISP MAP QUALITY ISSUE' %
+                                      self.frame_idx)
+                    else:
+                        self.draw_str(vis, (20, 20), 'frame: %d - WARNING' %
+                                      self.frame_idx)
                 else:
-                    self.draw_str(vis, (20, 20), 'frame: %d, DISTANCE WARNING' %
-                                  self.frame_idx)
+                    self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
+                                  (self.frame_idx, distance))
+                    self.draw_str(vis, (540, 30), 'DISTANCE WARNING', font_size=2.0, color=(0, 0, 255))
             else:
                 self.draw_str(vis, (20, 20), 'frame: %d' % self.frame_idx)
 
@@ -231,10 +235,10 @@ class App:
         return left_margin, right_margin
 
     @staticmethod
-    def draw_str(dst, target, s):
+    def draw_str(dst, target, s, font_size=1.0, color=(255, 255, 255)):
         x, y = target
-        cv.putText(dst, s, (x + 1, y + 1), cv.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 0), thickness=2, lineType=cv.LINE_AA)
-        cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv.LINE_AA)
+        cv.putText(dst, s, (x + 1, y + 1), cv.FONT_HERSHEY_PLAIN, font_size, (0, 0, 0), thickness=2, lineType=cv.LINE_AA)
+        cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, font_size, color, lineType=cv.LINE_AA)
 
     def depth_estimation(self, left, right, centroid):
 
@@ -326,7 +330,6 @@ class App:
         return avg_retina
 
     def detect_tip(self):
-        # TODO: check for outliers in predictions, keep a list of the previous 50 predictions
         # resize image
         curr_img = cv.resize(self.curr_frame, (320, 240))
         # expand dims to include batch size
@@ -342,17 +345,7 @@ class App:
 
 def main():
     try:
-        # 2D video
-        # video_src = "../data/videos/clip-pat-2-video-2.mp4"
-        # Note:
-        # for clip-case-2 - TRACKING NOT SO GOOD (Very, very, very difficult video)
-        # for clip-case-3 - TRACKING GOOD
-        # for clip-pat-1-video-4 - TRACKING GOOD
-        # for clip-pat-1-video-6 - TRACKING GOOD (Tool's body interference)
-        # for clip-pat-2-video-2 - TRACKING VERY GOOD
-        # for clip-pat-2-video-6 - TRACKING NOT SO GOOD (Glare interference)
-        # 3D video
-        video_src = "../data/videos/case-1-3D.avi"
+        video_src = "../data/videos/case-4-3D.mov"
     except:
         video_src = 0
 
