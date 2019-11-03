@@ -3,9 +3,9 @@ from ast import literal_eval
 
 import cv2 as cv
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from keras.models import model_from_json
 from scipy.spatial import distance
 from sklearn.utils import shuffle
@@ -37,7 +37,7 @@ def load_targets(targets):
 
 
 def main():
-    df = pd.read_csv('../../data/targets/targets-v2.csv', sep=';')
+    df = pd.read_csv('../../data/targets/targets-aug.csv', sep=';')
     df = shuffle(df[df['p'] != '(-1, -1)'])
     sample = df.sample(n=600)
 

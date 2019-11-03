@@ -5,10 +5,10 @@ from skimage import io
 frames = ['/case-1/frame1.png', '/case-1/frame98.png',
           '/case-1/frame402.png', '/case-1/frame649.png', '/case-1/frame966.png',
           '/case-2/frame1253.png', '/case-2/frame1293.png', '/case-2/frame1663.png',
-          '/case-3/frame1876.png', '/case-3/frame1709.png', '/patient1-4/frame1886.png',
-          '/patient1-4/frame3446.png', '/patient1-4/frame2873.png', '/patient1-4/frame2117.png',
-          '/patient1-6/frame3584.png', '/patient1-6/frame3811.png', '/patient2-2/frame3871.png',
-          '/patient2-2/frame4268.png', '/patient2-6/frame4841.png', '/patient2-6/frame4937.png']
+          '/case-3/frame1876.png', '/case-3/frame1709.png', '/case-10/frame1886.png',
+          '/case-10/frame3446.png', '/case-10/frame2873.png', '/case-10/frame2117.png',
+          '/case-11/frame3584.png', '/case-11/frame3811.png', '/case-12/frame3871.png',
+          '/case-12/frame4268.png', '/case-13/frame4841.png', '/case-13/frame4937.png']
 
 
 def ycbcr(frame):
@@ -95,7 +95,7 @@ def shadow(frame):
 
 
 def glare_removal():
-    img = io.imread('../../data/datasets/2d_frames_folders/patient2-2/frame4156.png')
+    img = io.imread('../../data/datasets/2d_frames_folders/case-12/frame4156.png')
 
     h, l, s = cv.split(cv.cvtColor(img, cv.COLOR_RGB2HLS))
     _, th = cv.threshold(l, 160, 255, cv.THRESH_BINARY)

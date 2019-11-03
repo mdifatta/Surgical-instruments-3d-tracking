@@ -183,7 +183,7 @@ class App:
 
 def main():
     try:
-        video_src = "../../data/videos/clip-pat-2-video-6.mp4"
+        video_src = "../../data/videos/case-13.mp4"
         '''
         Note:
         for clip-case-2 - NOT SO GOOD - Very, very, very difficult video

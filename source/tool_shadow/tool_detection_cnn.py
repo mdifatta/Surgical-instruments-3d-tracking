@@ -8,8 +8,8 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tqdm
 import seaborn as sns
+import tqdm
 from keras import backend as K
 from keras.activations import relu
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
@@ -230,7 +230,7 @@ def main():
         # create base path for images
         base_path = '../../data/datasets/all_distance_frames/'
         # read targets csv
-        df = pd.read_csv('../../data/targets/targets-v2.csv', sep=';')
+        df = pd.read_csv('../../data/targets/targets-aug.csv', sep=';')
         # take only valid frames
         df = df[df['p'] != '(-1, -1)']
         # shuffle data
@@ -254,7 +254,7 @@ def main():
         # create base path for images
         base_path = '../../data/datasets/all_distance_frames/'
         # read targets csv
-        df = pd.read_csv('../../data/targets/targets-v2.csv', sep=';')
+        df = pd.read_csv('../../data/targets/targets.csv', sep=';')
         # take only valid frames
         df = df[df['p'] != '(-1, -1)']
         # shuffle data
