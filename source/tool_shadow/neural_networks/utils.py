@@ -45,8 +45,7 @@ def augment_invalid(image):
 def augment_valid(image, points):
 
     key_points = ia.KeypointsOnImage([
-        ia.Keypoint(x=points[0].getx(), y=points[0].gety()),
-        ia.Keypoint(x=points[1].getx(), y=points[1].gety())
+        ia.Keypoint(x=points[0].getx(), y=points[0].gety())
     ], shape=image.shape)
 
     augmenter = iaa.Sequential([
@@ -75,43 +74,38 @@ def augment_valid(image, points):
 
 if __name__ == '__main__':
     # ################## PARAMS ######################
-    original_frames = 'patient2-6'
+    original_frames = 'case-13'
     initial_id = 11837
     # ###############################################
 
     file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
-    file.write('file;valid;p1;p2;dist\n')
+    file.write('file;p\n')
     file.close()
-    df = pd.read_csv('../../../data/targets/' + original_frames + '.csv', sep=';')
+    df = pd.read_csv('../../../data/targets/' + original_frames + '-v2.csv', sep=';')
 
     for _, r in tqdm(df.iterrows()):
         img = cv2.imread('../../../data/datasets/2d_frames_folders/' + original_frames + '/' + r['file'])
-        if r['valid'] == 1:
-            # convert string tuple to instance of Point
-            p1 = r['p1'][:len(r['p1'])-1]
-            p1 = p1.strip()[1:]
-            p1 = p1.split(',')
-            p1 = Point(p1)
-            p2 = r['p2'][:len(r['p2']) - 1]
-            p2 = p2.strip()[1:]
-            p2 = p2.split(',')
-            p2 = Point(p2)
-            # augment valid frame
-            aug_img, aug_points = augment_valid(img,
-                                                [p1,
-                                                 p2
-                                                 ])
+        # convert string tuple to instance of Point
+        p1 = r['p'][:len(r['p'])-1]
+        p1 = p1.strip()[1:]
+        p1 = p1.split(',')
+        p1 = Point(p1)
+        # p2 = r['p2'][:len(r['p2']) - 1]
+        # p2 = p2.strip()[1:]
+        # p2 = p2.split(',')
+        # p2 = Point(p2)
+        # augment valid frame
+        aug_img, aug_points = augment_valid(img,
+                                            [p1])
 
-            # save augmented image with new target
-            file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
-            cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png'
-                        % (original_frames, initial_id),
-                        aug_img)
-            file.write('frame%d.png;1;(%d, %d); (%d, %d); %.1f\n'
-                       % (initial_id, aug_points.keypoints[0].x, aug_points.keypoints[0].y,
-                          aug_points.keypoints[1].x,
-                          aug_points.keypoints[1].y, r['dist']))
-            file.close()
+        # save augmented image with new target
+        file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
+        cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png'
+                    % (original_frames, initial_id),
+                    aug_img)
+        file.write('frame%d.png;(%d, %d)\n'
+                   % (initial_id, aug_points.keypoints[0].x, aug_points.keypoints[0].y))
+        file.close()
 
             # draw old points on original image
             # tmp = cv2.circle(img, (p1.getx(), p1.gety()), 4, (255, 0, 0), -1, lineType=cv2.LINE_AA)
@@ -125,17 +119,17 @@ if __name__ == '__main__':
             #                  lineType=cv2.LINE_AA)
             # cv2.imshow('points', tmp)
             # cv2.waitKey()
-        else:
-            # show original and augmented image, both without points
-            aug_img = augment_invalid(img)
-
-            # save augmented image
-            file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
-            cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png'
-                        % (original_frames, initial_id),
-                        aug_img)
-            file.write('frame%d.png;0;-1;-1;-1\n' % initial_id)
-            file.close()
+        # else:
+        #     # show original and augmented image, both without points
+        #     aug_img = augment_invalid(img)
+        #
+        #     # save augmented image
+        #     file = open('../../../data/targets/augmented-' + original_frames + '.csv', 'a+')
+        #     cv2.imwrite('../../../data/datasets/2d_frames_folders/augmented-%s/frame%d.png'
+        #                 % (original_frames, initial_id),
+        #                 aug_img)
+        #     file.write('frame%d.png;0;-1;-1;-1\n' % initial_id)
+        #     file.close()
             # cv2.imshow('original', img)
             # cv2.waitKey()
             # cv2.imshow('points', aug_img)
