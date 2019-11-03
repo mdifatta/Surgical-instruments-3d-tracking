@@ -236,3 +236,9 @@ dmypy.json
 *.png
 
 *.avi
+
+*.xml
+
+*.mp4
+
+*.mov
