@@ -4,7 +4,7 @@ import cv2
 def main():
     print('starting main ...')
     cap = cv2.VideoCapture('../../data/videos/case-1-3D.avi')
-    cap.set(cv2.CAP_PROP_POS_MSEC, 17000)
+    cap.set(cv2.CAP_PROP_POS_MSEC, 0)
     i = 0
     while cap.isOpened():
         ret, f = cap.read()

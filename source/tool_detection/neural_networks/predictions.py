@@ -1,13 +1,11 @@
-from keras.models import model_from_json
 import cv2
-from matplotlib import pyplot as plt
-import pandas as pd
 import numpy as np
-from sklearn.metrics import roc_curve
+import pandas as pd
+from keras.models import model_from_json
+from matplotlib import pyplot as plt
 from sklearn.metrics import auc
 from sklearn.metrics import confusion_matrix
-from sklearn.utils.multiclass import unique_labels
-from tqdm import tqdm
+from sklearn.metrics import roc_curve
 
 
 def main():

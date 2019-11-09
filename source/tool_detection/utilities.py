@@ -1,9 +1,10 @@
+import math
+import os
+
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-import math
 from tqdm import tqdm
-import os
 
 OUTPUT_PATH = "./outputs/"
 

@@ -1,4 +1,3 @@
-import cv2
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 

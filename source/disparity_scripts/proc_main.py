@@ -1,6 +1,6 @@
 import cv2
+
 from utilities import normalize
-import matplotlib.pyplot as plt
 
 
 def disparity_computation(left_img, right_img):

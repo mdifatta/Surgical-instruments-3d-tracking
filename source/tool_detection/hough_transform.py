@@ -1,9 +1,10 @@
 import os
+
 import cv2
 from matplotlib import pyplot as plt
-from source.tool_shadow.utilities import hough_transform
-
 from tqdm import tqdm
+
+from source.tool_detection.utilities import hough_transform
 
 DATA_PATH = "../../data/datasets/frames2d/"
 OUTPUT_PATH = "../../data/outputs/"

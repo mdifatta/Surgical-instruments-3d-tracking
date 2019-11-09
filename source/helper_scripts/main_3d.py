@@ -1,7 +1,7 @@
-import cv2
 import os
+
+import cv2
 import matplotlib.pyplot as plt
-from PIL import Image, ImageFilter
 import numpy as np
 
 FRAMES_PATH = "../../data/datasets/"
