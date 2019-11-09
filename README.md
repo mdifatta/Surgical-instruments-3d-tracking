@@ -1,5 +1,5 @@
 # Thesis
-Repo for my master's thesis @ UIC and Politecnico di Milano
+### MS Degree thesis @ UIC and Politecnico di Milano
 
 The goal of this thesis work is to provide ophthalmologists with additional real-time, more reliable information of the
 distance of the instrument from the retina to avoid damages to patients.
