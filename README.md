@@ -1,18 +1,46 @@
 # Thesis
-Repo for my master's thesis @ UIC
+Repo for my master's thesis @ UIC and Politecnico di Milano
 
-The repo is divided into **data** and **source** sub-folders.
+***
 
-The **data** sub-folder contains:
-- the 2D and 3D surgery videos (not pushed remotely for size concern)
-- the 2D and 3D frames extracted from the videos (not pushed remotely)
-- the annotation files, i.e. the targets for the ConvNet
+The goal of this thesis work is to provide ophthalmologists with additional real-time, more reliable information of the
+distance of the instrument from the retina to avoid damages to patients.
 
-The **source** sub-folder contains the code of the four sub-projects:
-- _GUI_ contains the source code of the marking tool to annotate both the tool's tip and the shadow and create the targets for the first version of the CNN
-- _GUIv2_ contains the source code of the marking tool to annotate ONLY tool's tip and the shadow and create the targets for the CNN
-- _stereo depth_ contains all the code for disparity and depth computation
-- _tool shadow_ contains all the code for the detection of the tool, the shadow and for the computation of their distance
-- _video handler_ contains all the scripts for the extraction and processing of 2D and 3D frames
+The approach chosen is to use Deep Neural Networks (ConvNets) to locate the instrument's tip in the surgeries videos and
+Stereo Vision to estimate its distance from the retina.
+
+The repo is divided as follows.
+<pre>
+~/
+| -- data/
+|     |
+|     | -- datasets/
+|     | -- outputs/
+|     | -- targets/
+|     | -- videos/
+|     | -- videos_2D/
+|
+| -- source/
+      |
+      | -- GUI/
+      | -- disparity_scripts/
+      | -- helper_scripts/
+      | -- tool_detection/
+      | -- main.py
+      | -- main-cnn-only.py
+
+</pre>
+Under the **data** sub-folder you can find:
+- the 2D and 3D surgery videos (not pushed remotely for size concern) respectively in **video_2D** and **videos** 
+- the 2D and 3D frames extracted from the videos (not pushed remotely) under **datasets**
+- the annotation files, i.e. the targets for the ConvNet under **targets**
+
+Under the **source** sub-folder you can find:
+- _GUI_ containing the source code of the marking tools used to annotate the frames to train the CNNs.
+- _disparity scripts_ containing the scripts used to test disparity computation functions and methods
+- _tool detection_ containing the code for the detection of the tool, including Optical Flow scripts, ORB scripts and 
+CNNs training & testing scripts
+- _helper scripts_ containing all the helper scripts, including scripts to extract, resize, crop the frames from the videos,
+ to check annotations on the frames and so on.
 
 The **source** sub-folder also contains the _main-xxx.py_ scripts that implement a particular version of the entire pipeline.
