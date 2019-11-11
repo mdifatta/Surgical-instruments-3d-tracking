@@ -149,15 +149,17 @@ def build_deeper_model(input_shape):
     return model
 
 
+# custom loss function implementing RMSE
 def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
 
-# custom loss implementing Euclidean Distance
+# custom loss function implementing Euclidean Distance
 def custom_loss(y_true, y_pred):
     return K.mean(K.sqrt(K.sum(K.square(y_true - y_pred), axis = -1, keepdims = True)))
 
 
+# custom loss function implementing R2
 def R2(y_true, y_pred):
     SS_res=K.sum(K.square(y_true-y_pred))
     SS_tot=K.sum(K.square(y_true - K.mean(y_true)))
@@ -229,21 +231,33 @@ def main():
         # ######################## local ############################
         # create base path for images
         base_path = '../../data/datasets/all_distance_frames/'
-        # read targets csv
-        df = pd.read_csv('../../data/targets/targets-aug.csv', sep=';')
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # There exist different version of the dataset; un-comment the one needed.
+        #
+        # dataset v1 with augmentation and bad frames
+        # df = pd.read_csv('../../data/targets/targets-aug.csv', sep=';')
+        #
+        # dataset v1 without augmentation and bad frames
+        df = pd.read_csv('../../data/targets/targets.csv', sep=';')
+        #
+        # dataset v3 without augmentation and bad frames but with 1k more frames
+        # df = pd.read_csv('../../data/targets/targets-add-data.csv', sep=';')
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
         # take only valid frames
         df = df[df['p'] != '(-1, -1)']
         # shuffle data
         df = shuffle(df)
         # get a subset of the lines for local testing
         df = df.iloc[:500, :]
-        # local batch size to handle restricted dataset dimension
+        # redefine batch size to handle restricted dataset dimension
         batch_size = 10
     elif ENV == 'colab':
         # ################# for colab ####################
         # create base path for images
         base_path = './frames/'
-        # read targets csv
+
         df = pd.read_csv('./targets/targets.csv', sep=';')
         # take only valid frames
         df = df[df['p'] != '(-1, -1)']
@@ -253,8 +267,20 @@ def main():
         # ######################## computer lab ############################
         # create base path for images
         base_path = '../../data/datasets/all_distance_frames/'
-        # read targets csv
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # There exist different versions of the dataset; UN-COMMENT THE ONE NEEDED.
+        #
+        # dataset v1 with augmentation and bad frames
+        # df = pd.read_csv('../../data/targets/targets-aug.csv', sep=';')
+        #
+        # dataset v1 without augmentation and bad frames
         df = pd.read_csv('../../data/targets/targets.csv', sep=';')
+        #
+        # dataset v3 without augmentation and bad frames but with 1k more frames
+        # df = pd.read_csv('../../data/targets/targets-add-data.csv', sep=';')
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
         # take only valid frames
         df = df[df['p'] != '(-1, -1)']
         # shuffle data
