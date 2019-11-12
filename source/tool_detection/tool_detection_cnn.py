@@ -478,6 +478,10 @@ def main():
 
     # perform predictions on the test set again to print predictions and compute running time
     start = time.time()
+
+    print('Loading checkpoint ... ')
+    model.load_weights('./training_outputs/weights_checkpoint_{}.h5'.format(timestamp))
+
     preds = model.predict_generator(
         generator=test_generator
     )
