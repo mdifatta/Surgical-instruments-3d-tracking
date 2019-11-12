@@ -414,7 +414,7 @@ def main():
 
     # compile the model. i.e. define optimizer, loss function and additional metrics
     model.compile(optimizer=Adam(lr=learning_rate),
-                  loss=custom_loss,
+                  loss=euclidean_distance,
                   metrics=[R2]
                   )
 
