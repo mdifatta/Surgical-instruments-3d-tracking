@@ -66,8 +66,31 @@ class MyGenerator(Sequence):
         return targets
 
 
-# original CNN topology from the paper with addition of Ridge regularization
-def build_model(input_shape):
+# model from paper
+def build_baseline_model(input_shape):
+    model = Sequential()
+    model.add(Conv2D(filters=16, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
+                     data_format='channels_last'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.05))
+    model.add(Conv2D(filters=32, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.1))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Dropout(rate=0.2))
+    model.add(Flatten())
+    model.add(Dense(units=250, activation=relu))
+    model.add(Dropout(rate=0.2))
+    model.add(Dense(units=250, activation=relu))
+    model.add(Dropout(rate=0.3))
+    model.add(Dense(units=2, activation=relu))
+
+    return model
+
+
+# model from the paper with addition of Ridge regularization
+def build_baseline_model_ridge(input_shape):
     model = Sequential()
     model.add(Conv2D(filters=16, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
                      data_format='channels_last', kernel_regularizer=l2(5e-4)))
@@ -113,38 +136,86 @@ def build_wider_model(input_shape):
     return model
 
 
-# CNN topology with more filter and more layers
-def build_deeper_model(input_shape):
+# CNN with more Conv2D, more filters per layer and more neurons bu WITHOUT regularization
+def build_deeper_model_no_reg(input_shape):
     model = Sequential()
     model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
-                     data_format='channels_last', kernel_regularizer=l2(5e-4)))
+                     data_format='channels_last'))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.05))
-    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same'))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.1))
-    model.add(Conv2D(filters=128, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=128, kernel_size=(2, 2), activation=relu, padding='same'))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
-    model.add(Conv2D(filters=256, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=256, kernel_size=(2, 2), activation=relu, padding='same'))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
-    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same'))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
-    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same'))
     model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
     model.add(Dropout(rate=0.2))
     model.add(Flatten())
-    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
-    model.add(Dropout(rate=0.2))
-    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
-    model.add(Dropout(rate=0.2))
-    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
-    model.add(Dropout(rate=0.2))
-    model.add(Dense(units=350, activation=relu, kernel_regularizer=l2(5e-4)))
-    model.add(Dropout(rate=0.2))
-    model.add(Dense(units=2, activation=relu, kernel_regularizer=l2(5e-4)))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=2, activation=relu))
+
+    return model
+
+
+# CNN with more Conv2D, more filters per layer and more neurons bu WITHOUT regularization and dropout
+def build_deeper_model_no_reg_no_dropout(input_shape):
+    model = Sequential()
+    model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
+                     data_format='channels_last'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=128, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=256, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Flatten())
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=2, activation=relu))
+
+    return model
+
+
+# CNN with more Conv2D, more filters per layer and more neurons bu WITHOUT dropout
+def build_deeper_model_no_dropout(input_shape):
+    model = Sequential()
+    model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=input_shape, activation=relu, padding='same',
+                     data_format='channels_last', kernel_regularizer=l2(5e-7)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=64, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-7)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=128, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-7)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=256, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-7)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-7)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Conv2D(filters=512, kernel_size=(2, 2), activation=relu, padding='same', kernel_regularizer=l2(5e-7)))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding='same'))
+    model.add(Flatten())
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=400, activation=relu))
+    model.add(Dense(units=2, activation=relu))
 
     return model
 
@@ -154,8 +225,8 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
 
-# custom loss function implementing Euclidean Distance
-def custom_loss(y_true, y_pred):
+# custom loss implementing Euclidean Distance
+def euclidean_distance(y_true, y_pred):
     return K.mean(K.sqrt(K.sum(K.square(y_true - y_pred), axis = -1, keepdims = True)))
 
 
@@ -339,7 +410,7 @@ def main():
     print('Training starting at %s.' % timestamp)
 
     # build model
-    model = build_deeper_model(input_shape)
+    model = build_deeper_model_no_dropout(input_shape)
 
     # compile the model. i.e. define optimizer, loss function and additional metrics
     model.compile(optimizer=Adam(lr=learning_rate),
@@ -466,7 +537,7 @@ def main():
     with open("./training_outputs/model_snapshot_%s.txt" % timestamp, "w") as text_file:
         text_file.write("Training params:"
                         "\n"
-                        "model=deeper-model-no-aug-no-reg"
+                        "model=deeper-model-no-dropout-dataset-v3"
                         "\n"
                         "loss=Euclidean-distance"
                         "\n"
