@@ -358,16 +358,10 @@ def main():
         df = shuffle(df)
 
     # split train and test as 90/10
-    (train_df, test_df) = train_test_split(df,
-                                           test_size=.1,
-                                           train_size=.9,
-                                           random_state=8311472)
+    (train_df, test_df) = train_test_split(df, test_size=.1, train_size=.9, random_state=8311472)
 
     # split train and valid as 80/20 of previous train
-    (train_df, valid_df) = train_test_split(train_df,
-                                            test_size=.2,
-                                            train_size=.8,
-                                            random_state=8311472)
+    (train_df, valid_df) = train_test_split(train_df, test_size=.2, train_size=.8, random_state=8311472)
 
     # create data generators for train, test and valid set
     train_generator = MyGenerator(
@@ -440,7 +434,7 @@ def main():
         verbose=1
     )
 
-    print('Training ended...')
+    print('Training ended at {}'.format(datetime.datetime.now().strftime("%m-%d-%H-%M")))
 
     # plot and save metrics' evolution
     plt.plot(history.history['R2'], label='Train R2', color='red')
