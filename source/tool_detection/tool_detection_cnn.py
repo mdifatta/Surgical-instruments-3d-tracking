@@ -505,9 +505,9 @@ def main():
         im = cv.imread(base_path + filename)
         im = im.astype(np.float32)
         # draw prediction
-        cv.circle(im, (int(p[0]), int(p[1])), 1, (0, 0, 255), -1, cv.LINE_AA)
+        cv.rectangle(im, (int(p[0])-25, int(p[1])-25), (int(p[0])+25, int(p[1])+25), (0, 0, 255))
         # draw ground truth
-        cv.circle(im, (int(t[0]), int(t[1])), 1, (0, 255, 0), -1, cv.LINE_AA)
+        cv.rectangle(im, (int(t[0])-25, int(t[1])-25), (int(t[0])+25, int(t[1])+25), (0, 255, 0))
         cv.putText(im, 'pred:(' + str(p[0]) + ',' + str(p[1]) + ')', (10, 230),
                    cv.FONT_HERSHEY_PLAIN, .6,
                    color=(0, 0, 255))
