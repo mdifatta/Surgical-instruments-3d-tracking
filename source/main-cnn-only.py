@@ -165,7 +165,7 @@ class App:
             vis = left_frame.copy()
 
             if self.tooltip:
-                cv.circle(vis, (self.tooltip[0], self.tooltip[1]), 4, (255, 0, 0), -1)
+                cv.circle(vis, (self.tooltip[0], self.tooltip[1]), 4, (0, 252, 124), 2)
                 outcome, distance = self.depth_estimation(left_frame, right_frame, self.tooltip)
                 if outcome == App.OK_CODE:
                     self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
