@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import time
+
 import cv2 as cv
 import numpy as np
 from keras.models import model_from_json
@@ -134,6 +136,12 @@ class App:
         self.loaded_model.load_weights(weights_file)
         print("Loaded model from disk")
 
+        self.window_name = 'CNN detection + stereo-vision'
+        self.slider_name = 'Frame'
+        cv.namedWindow(self.window_name)
+        # create slider
+        cv.createTrackbar(self.slider_name, self.window_name, 0, int(self.frames_count), self.on_trackbar)
+
     def run(self):
         left_edge, right_edge = 0, -1
 
@@ -142,6 +150,9 @@ class App:
             return
 
         while self.cam.isOpened():
+            start = time.time()
+            # set position of the slider
+            cv.setTrackbarPos(self.slider_name, self.window_name, self.frame_idx)
             # read next frame
             _ret, full_frame = self.cam.read()
             if not _ret:
@@ -165,7 +176,8 @@ class App:
             vis = left_frame.copy()
 
             if self.tooltip:
-                cv.circle(vis, (self.tooltip[0], self.tooltip[1]), 4, (0, 252, 124), 2)
+                cv.rectangle(vis, (self.tooltip[0] - 30, self.tooltip[1] - 30),
+                             (self.tooltip[0] + 30, self.tooltip[1] + 30), (0, 252, 124), 2)
                 outcome, distance = self.depth_estimation(left_frame, right_frame, self.tooltip)
                 if outcome == App.OK_CODE:
                     self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
@@ -191,9 +203,14 @@ class App:
             # show detected points
             cv.imshow('CNN detection + stereo-vision', vis)
 
+            end = time.time()
+            print('Single iteration: %.4f' % (end - start))
+
             ch = cv.waitKey(1000 // self.fps)
             if ch == 27:
                 break
+            if ch == 112:
+                cv.waitKey()
 
         self.cam.release()
         cv.destroyAllWindows()
@@ -251,7 +268,9 @@ class App:
         # values from matching are float, normalize them between 0-255 as integer
         disparity = cv.normalize(cv.resize(disparity, (0, 0), fx=1/.6, fy=1/.6), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
 
-        code, delta_disparity = App.compare_disparities(disparity, centroid)
+        # cv.imshow('disp', disparity)
+
+        code, delta_disparity = self.compare_disparities(disparity, centroid)
 
         return code, delta_disparity
 
@@ -302,6 +321,8 @@ class App:
     def tip_averaging(tip):
         # Gaussian weights for the tip
         weights = App.gaussian_weights(kernel_len=100)
+
+        # cv.imshow('weights', cv.normalize(weights, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
 
         weights[tip <= 20] = 1e-7
         # weighted average disparity value for the tip
