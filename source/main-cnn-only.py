@@ -105,6 +105,12 @@ class App:
     UNSAFE_ERROR_CODE = 0
     OK_CODE = 1
 
+    RED = (0, 0, 255)
+    ORANGE = (0, 128, 255)
+    YELLOW = (0, 255, 255)
+    L_GREEN = (0, 255, 128)
+    GREEN = (0, 255, 0)
+
     def __init__(self, video_src):
         # input video's fps
         self.fps = 24
@@ -127,8 +133,8 @@ class App:
         )
         # current frame
         self.curr_frame = None
-        model_file = './tool_shadow/trained_model/tool_10-16-10-15.json'
-        weights_file = './tool_shadow/trained_model/weights_checkpoint_10-16-10-15.h5'
+        model_file = './tool_detection/trained_model/tool_10-16-10-15.json'
+        weights_file = './tool_detection/trained_model/weights_checkpoint_10-16-10-15.h5'
         json_file = open(model_file, 'r')
         loaded_model_json = json_file.read()
         json_file.close()
@@ -150,7 +156,6 @@ class App:
             return
 
         while self.cam.isOpened():
-            start = time.time()
             # set position of the slider
             cv.setTrackbarPos(self.slider_name, self.window_name, self.frame_idx)
             # read next frame
@@ -176,9 +181,22 @@ class App:
             vis = left_frame.copy()
 
             if self.tooltip:
-                cv.rectangle(vis, (self.tooltip[0] - 30, self.tooltip[1] - 30),
-                             (self.tooltip[0] + 30, self.tooltip[1] + 30), (0, 252, 124), 2)
                 outcome, distance = self.depth_estimation(left_frame, right_frame, self.tooltip)
+                if distance is None:
+                    rect_color = App.ORANGE
+                elif distance <= App.SAFETY_THRESHOLD:
+                    rect_color = App.RED
+                elif distance <= App.SAFETY_THRESHOLD + 7:
+                    rect_color = App.ORANGE
+                elif distance <= App.SAFETY_THRESHOLD + 14:
+                    rect_color = App.YELLOW
+                elif distance <= App.SAFETY_THRESHOLD + 21:
+                    rect_color = App.L_GREEN
+                else:
+                    rect_color = App.GREEN
+
+                cv.rectangle(vis, (self.tooltip[0] - 30, self.tooltip[1] - 30),
+                             (self.tooltip[0] + 30, self.tooltip[1] + 30), rect_color, 2)
                 if outcome == App.OK_CODE:
                     self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
                                   (self.frame_idx, distance))
@@ -202,9 +220,6 @@ class App:
             self.frame_idx += 1
             # show detected points
             cv.imshow('CNN detection + stereo-vision', vis)
-
-            end = time.time()
-            print('Single iteration: %.4f' % (end - start))
 
             ch = cv.waitKey(1000 // self.fps)
             if ch == 27:
@@ -258,17 +273,13 @@ class App:
         cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, font_size, color, lineType=cv.LINE_AA)
 
     def depth_estimation(self, left, right, centroid):
-
         # match left and right frames
         disparity = self.stereo_matcher.compute(
             cv.resize(self.claher.apply(cv.cvtColor(left, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6),
             cv.resize(self.claher.apply(cv.cvtColor(right, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6)
         )
-
         # values from matching are float, normalize them between 0-255 as integer
         disparity = cv.normalize(cv.resize(disparity, (0, 0), fx=1/.6, fy=1/.6), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
-
-        # cv.imshow('disp', disparity)
 
         code, delta_disparity = self.compare_disparities(disparity, centroid)
 
@@ -362,6 +373,10 @@ class App:
         pred[0][1] = pred[0][1] * 320
         pred = pred.reshape(2)
         self.tooltip = tuple(np.rint(pred * 4.275).astype(int))
+
+    def on_trackbar(self, val):
+        self.frame_idx = val
+        self.cam.set(cv.CAP_PROP_POS_FRAMES, val)
 
 
 def main():
