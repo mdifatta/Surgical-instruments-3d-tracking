@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import time
-
 import cv2 as cv
 import numpy as np
 from keras.models import model_from_json
@@ -305,7 +303,7 @@ class App:
             return App.DISPARITY_MAP_ERROR_CODE, None
         else:
             # compute average disparity for the tool's tip
-            tip_avg_disparity = App.tip_averaging(tip)
+            tip_avg_disparity = App.tip_averaging(tip, tip_mask_size)
             # compute average disparity for the background retina
             retina_avg_disparity = App.retina_averaging(retina, tip_avg_disparity)
 
@@ -329,9 +327,9 @@ class App:
         return gauss_kernel_2d
 
     @staticmethod
-    def tip_averaging(tip):
+    def tip_averaging(tip, tip_mask_size):
         # Gaussian weights for the tip
-        weights = App.gaussian_weights(kernel_len=100)
+        weights = App.gaussian_weights(kernel_len=tip_mask_size)
 
         # cv.imshow('weights', cv.normalize(weights, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
 
