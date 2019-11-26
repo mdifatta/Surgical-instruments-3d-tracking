@@ -96,7 +96,7 @@ class StereoParams:
 
 class App:
     # safety threshold, this value should be tuned
-    SAFETY_THRESHOLD = 15
+    SAFETY_THRESHOLD = 21
 
     # outcome codes
     DISPARITY_MAP_ERROR_CODE = -1
