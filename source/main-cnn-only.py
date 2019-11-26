@@ -124,7 +124,7 @@ class App:
         # frames count
         self.frames_count = self.cam.get(cv.CAP_PROP_FRAME_COUNT)
         # initialize CLAHE object
-        self.claher = cv.createCLAHE(clipLimit=3.0, tileGridSize=(10, 10))
+        self.claher = cv.createCLAHE(clipLimit=1.0, tileGridSize=(3, 3))
         # initialize stereo matcher object
         self.stereo_matcher = cv.StereoSGBM_create(
             **StereoParams.fast_stereo_match_params
