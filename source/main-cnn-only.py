@@ -290,8 +290,7 @@ class App:
         return cv.cvtColor(lab, cv.COLOR_LAB2BGR)
 
     @staticmethod
-    def compare_disparities(disparity_map, centroid, tip_mask_size=100, retina_mask_size=320):
-        # TODO: dynamic size of the masks based on fluctuation of prediction
+    def compare_disparities(disparity_map, centroid, tip_mask_size=30, retina_mask_size=320):
 
         # filter masks from the disparity map
         tip = disparity_map[centroid[1] - (tip_mask_size // 2):centroid[1] + (tip_mask_size // 2),
