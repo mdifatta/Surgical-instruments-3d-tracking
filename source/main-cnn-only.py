@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import PySimpleGUI as Sg
 import cv2 as cv
 import numpy as np
 from keras.models import model_from_json
@@ -94,6 +95,25 @@ class StereoParams:
                                   )
 
 
+class GUI:
+    def __init__(self, num_frames):
+
+        layout = [
+            [Sg.Image(filename='', key='_IMAGE_', size=(866, 650))],
+            [Sg.Slider(range=(1, num_frames), orientation='h', size=(85, 10), default_value=0, enable_events=True,
+                       key='_SLIDER_'), Sg.Button('Pause', focus=True), Sg.Button('Quit')]
+        ]
+
+        self.window = Sg.Window('Real-time', location=(0, 0)).Layout(layout).Finalize()
+
+    def update_frame(self, img):
+        encoded_img = cv.imencode('.png', cv.resize(img, (866, 650)))[1].tobytes()
+        self.window['_IMAGE_'].update(data=encoded_img)
+
+    def update_slider(self, pos):
+        self.window['_SLIDER_'].update(pos)
+
+
 class App:
     # safety threshold, this value should be tuned
     SAFETY_THRESHOLD = 21
@@ -140,11 +160,7 @@ class App:
         self.loaded_model.load_weights(weights_file)
         print("Loaded model from disk")
 
-        self.window_name = 'CNN detection + stereo-vision'
-        self.slider_name = 'Frame'
-        cv.namedWindow(self.window_name)
-        # create slider
-        cv.createTrackbar(self.slider_name, self.window_name, 0, int(self.frames_count), self.on_trackbar)
+        self.GUI = GUI(num_frames=self.frames_count)
 
     def run(self):
         left_edge, right_edge = 0, -1
@@ -153,9 +169,9 @@ class App:
             print('Error reading video')
             return
 
+        _PLAY = True
+
         while self.cam.isOpened():
-            # set position of the slider
-            cv.setTrackbarPos(self.slider_name, self.window_name, self.frame_idx)
             # read next frame
             _ret, full_frame = self.cam.read()
             if not _ret:
@@ -214,19 +230,35 @@ class App:
 
             self.detect_tip()
 
-            # increment frame index
-            self.frame_idx += 1
-            # show detected points
-            cv.imshow('CNN detection + stereo-vision', vis)
+            # read gui events
+            gui_event, gui_values = self.GUI.window.read(timeout=1000 // self.fps)
 
-            ch = cv.waitKey(1000 // self.fps)
-            if ch == 27:
+            if gui_event in (None, 'Quit'):
+                self.GUI.window.close()
                 break
-            if ch == 112:
-                cv.waitKey()
+
+            if gui_event == 'Pause':
+                _PLAY = not _PLAY
+
+            if _PLAY:
+                if int(gui_values['_SLIDER_']) != self.frame_idx - 1:
+                    self.frame_idx = int(gui_values['_SLIDER_'])
+                    self.cam.set(cv.CAP_PROP_POS_FRAMES, self.frame_idx)
+
+                # increment frame index
+                self.frame_idx += 1
+                self.GUI.update_frame(vis)
+                # update slider with new position
+                self.GUI.update_slider(self.frame_idx)
+            else:
+                if int(gui_values['_SLIDER_']) != self.frame_idx - 1:
+                    self.frame_idx = int(gui_values['_SLIDER_'])
+                    self.cam.set(cv.CAP_PROP_POS_FRAMES, self.frame_idx)
+                self.GUI.update_frame(vis)
+                # update slider with new position
+                self.GUI.update_slider(self.frame_idx)
 
         self.cam.release()
-        cv.destroyAllWindows()
 
     @staticmethod
     def crop(frame, width=1368):
@@ -377,12 +409,13 @@ class App:
 
 
 def main():
-    try:
-        video_src = "../data/videos/case-4-3D.mov"
-    except:
-        video_src = 0
+    Sg.ChangeLookAndFeel('Black')
+    video_src = Sg.PopupGetFile('Please enter a file name')
 
-    App(video_src).run()
+    while not (video_src is None):
+        App(video_src).run()
+        video_src = Sg.PopupGetFile('Please enter a file name')
+
     print('Done')
 
 
