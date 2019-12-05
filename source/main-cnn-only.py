@@ -129,6 +129,14 @@ class App:
     L_GREEN = (0, 255, 128)
     GREEN = (0, 255, 0)
 
+    # max length of retina history
+    # CAVEAT: the videos' frame rate is 60 fps so with =60 a memory of 1 sec in kept,
+    # with =120 a memory of 2 sec is kept and so on
+    MAX_HISTORY_COUNT = 120
+
+    # max variance for a retina disparity value
+    RETINA_VAR_THRESHOLD = 4
+
     def __init__(self, video_src):
         # input video's fps
         self.fps = 24
@@ -151,6 +159,14 @@ class App:
         )
         # current frame
         self.curr_frame = None
+
+        # store last disparity values for the retina to detect outliers
+        self.retina_history = []
+        # partial sum of last disparity values for the retina
+        self.retina_history_tot = 0
+        # length of the retina's history
+        self.retina_history_count = 0
+
         model_file = './tool_detection/trained_model/tool_10-16-10-15.json'
         weights_file = './tool_detection/trained_model/weights_checkpoint_10-16-10-15.h5'
         json_file = open(model_file, 'r')
@@ -321,8 +337,7 @@ class App:
         lab = cv.merge((l_channel, a, b))
         return cv.cvtColor(lab, cv.COLOR_LAB2BGR)
 
-    @staticmethod
-    def compare_disparities(disparity_map, centroid, tip_mask_size=30, retina_mask_size=320):
+    def compare_disparities(self, disparity_map, centroid, tip_mask_size=30, retina_mask_size=320):
 
         # filter masks from the disparity map
         tip = disparity_map[centroid[1] - (tip_mask_size // 2):centroid[1] + (tip_mask_size // 2),
@@ -337,6 +352,8 @@ class App:
             tip_avg_disparity = App.tip_averaging(tip, tip_mask_size)
             # compute average disparity for the background retina
             retina_avg_disparity = App.retina_averaging(retina, tip_avg_disparity)
+
+            _, retina_value = self.check_retina_history(retina_avg_disparity)
 
             # estimated delta disparity between the tool's tip and the retina in background
             # CAVEAT: delta_disparity should always be > 0;
@@ -403,9 +420,29 @@ class App:
         pred = pred.reshape(2)
         self.tooltip = tuple(np.rint(pred * 4.275).astype(int))
 
-    def on_trackbar(self, val):
-        self.frame_idx = val
-        self.cam.set(cv.CAP_PROP_POS_FRAMES, val)
+    def check_retina_history(self, value):
+        # collect at least MAX_HISTORY_COUNT values before considering the average value
+        if self.retina_history_count < App.MAX_HISTORY_COUNT:
+            self.retina_history.append(value)
+            self.retina_history_tot += value
+            self.retina_history_count += 1
+            return 0, value
+        else:
+            # compute the current average
+            curr_avg = (self.retina_history_tot / self.retina_history_count)
+            # if the current value is too far away (i.e. more than RETINA_VAR_THRESHOLD) from the average
+            if np.abs(curr_avg - value) >= App.RETINA_VAR_THRESHOLD:
+                # the current point is an outlier, return the average of the history
+                return -1, curr_avg
+            else:
+                # remove oldest retina value from the history and from the sum
+                oldest_value = self.retina_history.pop(0)
+                self.retina_history_tot -= oldest_value
+                # add the new value to the history and to the sum
+                self.retina_history.append(value)
+                self.retina_history_tot += value
+                # return the updated average
+                return 1, (self.retina_history_tot / self.retina_history_count)
 
 
 def main():
