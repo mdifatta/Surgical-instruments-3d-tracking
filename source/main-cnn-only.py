@@ -214,35 +214,32 @@ class App:
                 outcome, distance = self.depth_estimation(left_frame, right_frame, self.tooltip)
                 if distance is None:
                     rect_color = App.ORANGE
+                    rect_size = 15
                 elif distance <= App.SAFETY_THRESHOLD:
                     rect_color = App.RED
+                    rect_size = 25
                 elif distance <= App.SAFETY_THRESHOLD + 7:
                     rect_color = App.ORANGE
+                    rect_size = 50
                 elif distance <= App.SAFETY_THRESHOLD + 14:
                     rect_color = App.YELLOW
+                    rect_size = 100
                 elif distance <= App.SAFETY_THRESHOLD + 21:
                     rect_color = App.L_GREEN
+                    rect_size = 200
                 else:
                     rect_color = App.GREEN
+                    rect_size = 300
 
-                cv.rectangle(vis, (self.tooltip[0] - 30, self.tooltip[1] - 30),
-                             (self.tooltip[0] + 30, self.tooltip[1] + 30), rect_color, 2)
-                if outcome == App.OK_CODE:
-                    self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
-                                  (self.frame_idx, distance))
-                elif outcome == App.DISPARITY_MAP_ERROR_CODE:
+                cv.rectangle(vis, (15, 15), (rect_size, 100), rect_color, -1)
+                cv.circle(vis, (self.tooltip[0], self.tooltip[1]), rect_size, rect_color, thickness=2)
+                if outcome == App.DISPARITY_MAP_ERROR_CODE:
                     if distance is None:
-                        self.draw_str(vis, (20, 20), 'frame: %d - DISP MAP QUALITY ISSUE' %
-                                      self.frame_idx)
+                        self.draw_str(vis, (20, 20), 'DISP MAP QUALITY ISSUE')
                     else:
-                        self.draw_str(vis, (20, 20), 'frame: %d - WARNING' %
-                                      self.frame_idx)
-                else:
-                    self.draw_str(vis, (20, 20), 'frame: %d, dist: %.2f' %
-                                  (self.frame_idx, distance))
-                    self.draw_str(vis, (540, 30), 'DISTANCE WARNING', font_size=2.0, color=(0, 0, 255))
-            else:
-                self.draw_str(vis, (20, 20), 'frame: %d' % self.frame_idx)
+                        self.draw_str(vis, (20, 20), 'WARNING')
+                elif outcome == App.UNSAFE_ERROR_CODE:
+                    self.draw_str(vis, (480, 50), 'DISTANCE WARNING', font_size=3.0, color=(0, 0, 255))
 
             self.detect_tip()
 
@@ -315,8 +312,8 @@ class App:
     @staticmethod
     def draw_str(dst, target, s, font_size=1.0, color=(255, 255, 255)):
         x, y = target
-        cv.putText(dst, s, (x + 1, y + 1), cv.FONT_HERSHEY_PLAIN, font_size, (0, 0, 0), thickness=2, lineType=cv.LINE_AA)
-        cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, font_size, color, lineType=cv.LINE_AA)
+        cv.putText(dst, s, (x + 1, y + 1), cv.FONT_HERSHEY_PLAIN, font_size, (0, 0, 0), thickness=3, lineType=cv.LINE_AA)
+        cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, font_size, color, thickness=2,  lineType=cv.LINE_AA)
 
     def depth_estimation(self, left, right, centroid):
         # match left and right frames
