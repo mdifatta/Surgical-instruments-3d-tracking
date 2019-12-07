@@ -125,6 +125,7 @@ class App:
 
     RED = (0, 0, 255)
     ORANGE = (0, 128, 255)
+    L_ORANGE = (0, 191, 255)
     YELLOW = (0, 255, 255)
     L_GREEN = (0, 255, 128)
     GREEN = (0, 255, 0)
@@ -212,27 +213,30 @@ class App:
 
             if self.tooltip:
                 outcome, distance = self.depth_estimation(left_frame, right_frame, self.tooltip)
+                rect_size = 50
                 if distance is None:
-                    rect_color = App.ORANGE
-                    rect_size = 15
+                    circle_color = App.ORANGE
+                    circle_opacity = 0.0
                 elif distance <= App.SAFETY_THRESHOLD:
-                    rect_color = App.RED
-                    rect_size = 25
+                    circle_color = App.ORANGE
+                    circle_opacity = 0.9
                 elif distance <= App.SAFETY_THRESHOLD + 7:
-                    rect_color = App.ORANGE
-                    rect_size = 50
+                    circle_color = App.L_ORANGE
+                    circle_opacity = 0.8
                 elif distance <= App.SAFETY_THRESHOLD + 14:
-                    rect_color = App.YELLOW
-                    rect_size = 100
+                    circle_color = App.YELLOW
+                    circle_opacity = 0.6
                 elif distance <= App.SAFETY_THRESHOLD + 21:
-                    rect_color = App.L_GREEN
-                    rect_size = 200
+                    circle_color = App.L_GREEN
+                    circle_opacity = 0.4
                 else:
-                    rect_color = App.GREEN
-                    rect_size = 300
+                    circle_color = App.GREEN
+                    circle_opacity = 0.2
 
-                cv.rectangle(vis, (15, 15), (rect_size, 100), rect_color, -1)
-                cv.circle(vis, (self.tooltip[0], self.tooltip[1]), rect_size, rect_color, thickness=2)
+                copy = vis.copy()
+                cv.circle(copy, (self.tooltip[0], self.tooltip[1]), rect_size, circle_color, thickness=2)
+                cv.addWeighted(copy, circle_opacity, vis, 1 - circle_opacity, 0, vis)
+
                 if outcome == App.DISPARITY_MAP_ERROR_CODE:
                     if distance is None:
                         self.draw_str(vis, (20, 20), 'DISP MAP QUALITY ISSUE')
