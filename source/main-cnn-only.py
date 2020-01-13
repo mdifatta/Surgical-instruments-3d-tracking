@@ -3,6 +3,7 @@ from __future__ import print_function
 import PySimpleGUI as Sg
 import cv2 as cv
 import numpy as np
+from PIL import ImageTk, Image
 from keras.models import model_from_json
 from scipy import signal
 
@@ -108,21 +109,26 @@ class GUI:
 
     def update_frame(self, img):
         encoded_img = cv.imencode('.png', cv.resize(img, (866, 650)))[1].tobytes()
-        self.window['_IMAGE_'].update(data=encoded_img)
+        self.window['_IMAGE_'].update(data=self.convert_image(img))
 
     def update_slider(self, pos):
         self.window['_SLIDER_'].update(pos)
 
+    @staticmethod
+    def convert_image(self, img):
+        return ImageTk.PhotoImage(image=Image.fromarray(cv.resize(cv.cvtColor(img, cv.COLOR_BGR2RGB), (866, 650))))
+
 
 class App:
-    # safety threshold, this value should be tuned
+    # safety threshold, this value should be tuned for each video
     SAFETY_THRESHOLD = 21
 
-    # outcome codes
+    # outcome codes for disparity computation
     DISPARITY_MAP_ERROR_CODE = -1
     UNSAFE_ERROR_CODE = 0
     OK_CODE = 1
 
+    # BGR colors for the HUD
     RED = (0, 0, 255)
     ORANGE = (0, 128, 255)
     L_ORANGE = (0, 191, 255)
@@ -167,7 +173,7 @@ class App:
         self.retina_history_tot = 0
         # length of the retina's history
         self.retina_history_count = 0
-
+        # load the structure and the weights of the current GM model
         model_file = './tool_detection/trained_model/tool_10-16-10-15.json'
         weights_file = './tool_detection/trained_model/weights_checkpoint_10-16-10-15.h5'
         json_file = open(model_file, 'r')
@@ -176,12 +182,13 @@ class App:
         self.loaded_model = model_from_json(loaded_model_json)
         self.loaded_model.load_weights(weights_file)
         print("Loaded model from disk")
-
+        # build GUI
         self.GUI = GUI(num_frames=self.frames_count)
 
     def run(self):
+        # initialize edges
         left_edge, right_edge = 0, -1
-
+        # check if videos has been correctly opened
         if not self.cam.isOpened():
             print('Error reading video')
             return
@@ -189,20 +196,20 @@ class App:
         _PLAY = True
 
         while self.cam.isOpened():
-            # read next frame
+            # read next stereo frame
             _ret, full_frame = self.cam.read()
             if not _ret:
                 self.frame_idx += 1
                 continue
-            # crop frame to remove TrueVision logo
+            # crop frame to remove TrueVision logo in the bottom right corner
             full_frame = full_frame[:1026, :, :]
             # divide left and right frame from the stereo frame
             mid = int(full_frame.shape[1] / 2)
             left_frame = full_frame[:, 0:mid, :]
             right_frame = full_frame[:, mid:, :]
-            # get a copy of the left frame
             frame = left_frame
             if self.frame_idx == 0:
+                # compute left and right edge of the ROI to center the retina
                 left_edge, right_edge = self.crop(frame, width=1368)
             # crop black bands from frames' edges
             left_frame = left_frame[:, left_edge:right_edge, :]
@@ -212,8 +219,13 @@ class App:
             vis = left_frame.copy()
 
             if self.tooltip:
+                # if a tuple for the coordinates of the tooltip has been stored
+                # compute the relative disparity value
                 outcome, distance = self.depth_estimation(left_frame, right_frame, self.tooltip)
-                rect_size = 50
+                # fix HUD circle size
+                circle_size = 50
+                # set HUD circle size and opacity based of the outcome of the disparity computation
+                # LOWER the disparity, HIGHER the disparity and WARMER the color
                 if distance is None:
                     circle_color = App.ORANGE
                     circle_opacity = 0.0
@@ -233,10 +245,13 @@ class App:
                     circle_color = App.GREEN
                     circle_opacity = 0.2
 
+                # get a copy oo the current frame to apply opacity
                 copy = vis.copy()
-                cv.circle(copy, (self.tooltip[0], self.tooltip[1]), rect_size, circle_color, thickness=2)
+                # draw the HUD circle with the right opacity
+                cv.circle(copy, (self.tooltip[0], self.tooltip[1]), circle_size, circle_color, thickness=2)
                 cv.addWeighted(copy, circle_opacity, vis, 1 - circle_opacity, 0, vis)
 
+                # draw a message on the frame based on the safety condition
                 if outcome == App.DISPARITY_MAP_ERROR_CODE:
                     if distance is None:
                         self.draw_str(vis, (20, 20), 'DISP MAP QUALITY ISSUE')
@@ -245,19 +260,23 @@ class App:
                 elif outcome == App.UNSAFE_ERROR_CODE:
                     self.draw_str(vis, (480, 50), 'DISTANCE WARNING', font_size=3.0, color=(0, 0, 255))
 
+            # run the CNN to locate the instrument's tip
             self.detect_tip()
 
             # read gui events
             gui_event, gui_values = self.GUI.window.read(timeout=1000 // self.fps)
 
+            # handle QUIT event
             if gui_event in (None, 'Quit'):
                 self.GUI.window.close()
                 break
 
+            # handle PLAY/PAUSE event
             if gui_event == 'Pause':
                 _PLAY = not _PLAY
 
             if _PLAY:
+                # when PLAYING, do ...
                 if int(gui_values['_SLIDER_']) != self.frame_idx - 1:
                     self.frame_idx = int(gui_values['_SLIDER_'])
                     self.cam.set(cv.CAP_PROP_POS_FRAMES, self.frame_idx)
@@ -268,6 +287,7 @@ class App:
                 # update slider with new position
                 self.GUI.update_slider(self.frame_idx)
             else:
+                # when PAUSED, do ...
                 if int(gui_values['_SLIDER_']) != self.frame_idx - 1:
                     self.frame_idx = int(gui_values['_SLIDER_'])
                     self.cam.set(cv.CAP_PROP_POS_FRAMES, self.frame_idx)
@@ -275,17 +295,31 @@ class App:
                 # update slider with new position
                 self.GUI.update_slider(self.frame_idx)
 
+        # releaee the video
         self.cam.release()
 
     @staticmethod
     def crop(frame, width=1368):
+        """
+        Crop the input frame to size 1368x1026 to center the ROI
+
+        :param frame: the raw frame to be cropped (ndarray)
+        :param width: the target width for the cropped frame (int)
+        :return:
+            left_margin (int): left edge of the ROI
+            right_margin (int): right edge of the ROI
+        """
+
+        # compute binary image with Otsu's method
         _, thr = cv.threshold(cv.cvtColor(frame, cv.COLOR_BGR2GRAY),
                               0,
                               255,
                               cv.THRESH_BINARY + cv.THRESH_OTSU
                               )
+        # find the borders of the white (255) area
         crop_mask = cv.findNonZero(thr)
 
+        # compute the raw edges and than shrink or enlarge them to reach the target size of 'width'
         left_edge = crop_mask[:, 0, 0].min()
         right_edge = crop_mask[:, 0, 0].max()
 
@@ -315,11 +349,32 @@ class App:
 
     @staticmethod
     def draw_str(dst, target, s, font_size=1.0, color=(255, 255, 255)):
+        """
+        Draw text on the input image
+
+        :param dst: image (ndarray)
+        :param target: coordinates of the top left corner of the text (tuple of int)
+        :param s: string to draw (str)
+        :param font_size: font size (float)
+        :param color: text color (tuple of int)
+        :return:
+        """
         x, y = target
         cv.putText(dst, s, (x + 1, y + 1), cv.FONT_HERSHEY_PLAIN, font_size, (0, 0, 0), thickness=3, lineType=cv.LINE_AA)
         cv.putText(dst, s, (x, y), cv.FONT_HERSHEY_PLAIN, font_size, color, thickness=2,  lineType=cv.LINE_AA)
 
     def depth_estimation(self, left, right, centroid):
+        """
+        Compute disparity relative value
+
+        :param left: left image (ndarray)
+        :param right: right image (ndarray)
+        :param centroid: coordinates of the instrument's tip (tuple of float)
+        :return:
+            code: outcome code (int)
+            delta_disparity: disparity relative value (int)
+        """
+
         # match left and right frames
         disparity = self.stereo_matcher.compute(
             cv.resize(self.claher.apply(cv.cvtColor(left, cv.COLOR_BGR2GRAY)), (0, 0), fx=.6, fy=.6),
@@ -328,17 +383,40 @@ class App:
         # values from matching are float, normalize them between 0-255 as integer
         disparity = cv.normalize(cv.resize(disparity, (0, 0), fx=1/.6, fy=1/.6), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
 
+        # compare the disparity values of the instrument's tip and the background retina
         code, delta_disparity = self.compare_disparities(disparity, centroid)
 
         return code, delta_disparity
 
     def histogram_equalizer(self, img):
+        """
+        Adjust contrast of the input image
+
+        :param img: raw frame (ndarray)
+        :return: adjusted frame (ndarray)
+        """
+
+        # convert to LAB and split channels
         l, a, b = cv.split(cv.cvtColor(img, cv.COLOR_BGR2LAB))
+        # apply CLAHE to L channel
         l_channel = self.claher.apply(l)
+        # merge equalized L channel and A,B channels
         lab = cv.merge((l_channel, a, b))
         return cv.cvtColor(lab, cv.COLOR_LAB2BGR)
 
     def compare_disparities(self, disparity_map, centroid, tip_mask_size=30, retina_mask_size=320):
+        """
+        Compare the disparity values of the instrument's tip and the retina
+
+        :param disparity_map: disparity map computed with SGBM (ndarray)
+        :param centroid: coordinates of the instrument's tip (tuple of float)
+        :param tip_mask_size: size of the square matrix for the tip (int)
+        :param retina_mask_size: size of the square matrix for the retina (int)
+        :return:
+            code: outcome code (int)
+            delta_disparity: disparity relative value (int)
+
+        """
 
         # filter masks from the disparity map
         tip = disparity_map[centroid[1] - (tip_mask_size // 2):centroid[1] + (tip_mask_size // 2),
@@ -370,17 +448,28 @@ class App:
 
     @staticmethod
     def gaussian_weights(kernel_len, std=2.5):
-        """Returns a 2D Gaussian kernel array."""
+        """
+        Returns a 2D Gaussian kernel array.
+
+        :param kernel_len: size of the mask (int)
+        :param std: standard deviation of the Gaussian weights (float)
+        :return: 2D matrix containing values distributed according a Gaussian distribution
+        """
         gauss_kernel_1d = signal.gaussian(kernel_len, std=std).reshape(kernel_len, 1)
         gauss_kernel_2d = np.outer(gauss_kernel_1d, gauss_kernel_1d)
         return gauss_kernel_2d
 
     @staticmethod
     def tip_averaging(tip, tip_mask_size):
+        """
+        Compute a single, mean disparity value for the instrument's tip
+
+        :param tip: disparity map for the tip (ndarray)
+        :param tip_mask_size: size of the disparity map for the tip (int)
+        :return: mean disparity value weighted with Gaussian weights for the tip (floata)
+        """
         # Gaussian weights for the tip
         weights = App.gaussian_weights(kernel_len=tip_mask_size)
-
-        # cv.imshow('weights', cv.normalize(weights, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
 
         weights[tip <= 20] = 1e-7
         # weighted average disparity value for the tip
@@ -389,6 +478,14 @@ class App:
 
     @staticmethod
     def retina_averaging(retina, tip_avg):
+        """
+        Compute a single, mean disparity value for the retina
+
+        :param retina: disparity map for the retina (ndarray)
+        :param tip_avg: disparity value computed for the instrument's tip (float)
+        :return: mean disparity value for the retina (float)
+        """
+
         # clip retina's disparities
         retina = np.clip(retina, 1e-7, int(tip_avg))
 
@@ -409,6 +506,12 @@ class App:
         return avg_retina
 
     def detect_tip(self):
+        """
+        Locate the instrument's tip in the current frame
+
+        :return: coordinates of the instrument's tip (tuple of float)
+        """
+
         # resize image
         curr_img = cv.resize(self.curr_frame, (320, 240))
         # expand dims to include batch size
@@ -422,6 +525,13 @@ class App:
         self.tooltip = tuple(np.rint(pred * 4.275).astype(int))
 
     def check_retina_history(self, value):
+        """
+        Store and check the last MAX_HISTORY_COUNT frames to have a more reliable retina disparity value.
+
+        :param value: current relative disparity value between retina adn tip (float)
+        :return: running mean of retina disparity values
+        """
+
         # collect at least MAX_HISTORY_COUNT values before considering the average value
         if self.retina_history_count < App.MAX_HISTORY_COUNT:
             self.retina_history.append(value)
@@ -447,7 +557,9 @@ class App:
 
 
 def main():
+    # set the look of PySimpleGUI
     Sg.ChangeLookAndFeel('Black')
+    # read the video's name
     video_src = Sg.PopupGetFile('Please enter a file name')
 
     while not (video_src is None):
