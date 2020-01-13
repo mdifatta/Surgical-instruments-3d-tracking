@@ -108,7 +108,6 @@ def build_baseline_model_ridge(input_shape):
     model.add(Dense(units=250, activation=relu, kernel_regularizer=l2(5e-4)))
     model.add(Dropout(rate=0.3))
     model.add(Dense(units=2, activation=relu, kernel_regularizer=l2(5e-4)))
-    # model.add(LeakyReLU(alpha=.2))
 
     return model
 

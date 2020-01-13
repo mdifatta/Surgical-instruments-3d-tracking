@@ -80,7 +80,7 @@ class App:
 
 def main():
     try:
-        video_src = "../../data/videos/case-10.mp4"
+        video_src = "../../data/videos_2D/case-10.mp4"
     except:
         video_src = 0
 

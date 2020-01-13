@@ -82,7 +82,7 @@ class App:
                     if len(tr) > self.track_len:
                         del tr[0]
                     new_tracks.append(tr)
-                    cv.circle(vis, (x, y), 3, (0, 0, 255), -1)
+                    cv.circle(vis, (x, y), 5, (0, 255, 0), -1)
                 # draw centroid
                 if xs and ys:
                     # compute new centroid coordinates
@@ -98,7 +98,7 @@ class App:
                         self.reset_mask = False
                         # update centroid
                         self.centroid = (new_centroid_x, new_centroid_y)
-                    cv.circle(vis, (self.centroid[0], self.centroid[1]), 4, (255, 0, 0), -1)
+                    cv.circle(vis, (self.centroid[0], self.centroid[1]), 5, (0, 255, 0), -1)
                 self.tracks = new_tracks
 
                 draw_str(vis, (20, 20), 'track count: %d, frame: %d' % (len(self.tracks), self.frame_idx))
@@ -183,7 +183,7 @@ class App:
 
 def main():
     try:
-        video_src = "../../data/videos/case-13.mp4"
+        video_src = "../../data/videos_2D/case-1-2D.avi"
         '''
         Note:
         for clip-case-2 - NOT SO GOOD - Very, very, very difficult video
