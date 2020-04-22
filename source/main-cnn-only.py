@@ -115,7 +115,7 @@ class GUI:
         self.window['_SLIDER_'].update(pos)
 
     @staticmethod
-    def convert_image(self, img):
+    def convert_image(img):
         return ImageTk.PhotoImage(image=Image.fromarray(cv.resize(cv.cvtColor(img, cv.COLOR_BGR2RGB), (866, 650))))
 
 
